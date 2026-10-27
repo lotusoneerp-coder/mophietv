@@ -9,6 +9,9 @@ android {
         versionCode 32
         versionName '1.6.3'
     }
+    lint {
+        disable 'ExpiredTargetSdkVersion'
+    }
     sourceSets {
         main.assets.srcDirs = [file('../../app')]
     }
