@@ -2,7 +2,7 @@
    Não controla DOM de iframes de outra origem, não executa scripts de terceiros,
    não obtém cookies/sessões e não contorna DRM nem bloqueios de incorporação. */
 (function(){'use strict';
- const ROOTS={MegaFilmes:'https://megafilmeshd1.com',XilftenTV:'https://xilftentv.lat',PobreFlix:'https://www.pobreflixhd.site','Animes Orion':'https://animesorion.cc',RedeCanais:'https://redecanais.by'};
+ const ROOTS={RedeCanais:'https://redecanais.by'};
  const TIMEOUT=12000;
  function safeUrl(url,base){try{const v=new URL(url,base);return v.protocol==='https:'&&!/\s/.test(v.href)?v.href:null}catch(e){return null}}
  function isInstruction(u){try{return /(?:como[-_]?assistir|how[-_]?to[-_]?watch|instru(?:coes|coes|ções)|tutorial|faq|ajuda)/i.test(new URL(u).pathname)}catch(e){return true}}
