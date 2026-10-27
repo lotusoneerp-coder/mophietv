@@ -6,6 +6,7 @@ const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.Mophie
 const VERSION='1.6.4';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
+const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
 const KEY='mophietv_tcl_1';
 const HOLD_BACK_MS=3000;
 const PROFILE_FIELDS=['vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'];
@@ -447,7 +448,7 @@ function programHTML(c){const p=currentProgram(c);return p?esc(p.title)+' <span 
 function tileHTML(c){const playing=store.lastLive&&normal(store.lastLive.name)===normal(c.name);
  return '<div class="tile'+(playing?' playing':'')+'"><span class="num">'+pad3(c.number)+'</span><div class="channel-copy"><div class="channel-top"><span class="name">'+esc(c.name)+'</span><span class="program">'+programHTML(c)+'</span></div><div class="meta">'+(c.favorite?'<span class="fav">'+ic('heart')+'</span>':'')+(playing?ic('radio'):'')+esc(c.label)+'</div></div></div>'}
 function refreshProgramTiles(){
- for(const pair of [['chGrid',L.list],['fGrid',F.tab===0?L.channels.filter(c=>c.favorite):[]]]){
+ for(const pair of [['chGrid',L.list.slice(Math.floor((L.idx||0)/LIVE_PAGE_SIZE)*LIVE_PAGE_SIZE,Math.floor((L.idx||0)/LIVE_PAGE_SIZE)*LIVE_PAGE_SIZE+LIVE_PAGE_SIZE)],['fGrid',F.tab===0?L.channels.filter(c=>c.favorite):[]]]){
   const el=$(pair[0]);if(!el)continue;
   const tiles=el.querySelectorAll('.tile');tiles.forEach((node,i)=>{const c=pair[1][i];const program=node.querySelector('.program');if(program&&c)program.innerHTML=programHTML(c)})
  }
@@ -519,13 +520,19 @@ function renderLive(){setTitle('TV ao Vivo',L.bank+' · '+BANKS[L.bank]+' · '+L
  $('view').innerHTML='<div class="live-wrap"><div class="chips" id="bankChips"></div><div class="chips cats" id="catChips"></div><div class="grid-scroll" id="chScroll"><div class="ch-grid" id="chGrid"></div></div><div class="info-bar" id="chInfo"></div></div>';
  $('bankChips').innerHTML=BANK_IDS.map(b=>'<div class="chip bank-chip'+(b===L.bank?' selected':'')+(b==='BCNALL'?' bank-all':'')+'"><b>'+b+'</b><span>'+esc(BANKS[b])+'</span><small>'+(L.counts[b]||0)+'</small></div>').join('');
  $('catChips').innerHTML=L.cats.map(c=>'<div class="chip'+(c.id===L.filter?' selected':'')+'">'+(c.icon?ic(c.icon):'')+esc(c.label)+'<small>'+c.n+'</small></div>').join('');
- $('chGrid').innerHTML=L.list.map(tileHTML).join('');
+ const pageStart=Math.floor(Math.max(0,Math.min(L.idx||0,L.list.length-1))/LIVE_PAGE_SIZE)*LIVE_PAGE_SIZE;
+  const visibleChannels=L.list.slice(pageStart,pageStart+LIVE_PAGE_SIZE);
+  $('chGrid').innerHTML=visibleChannels.map(tileHTML).join('');
  if(!L.list.length)$('chScroll').insertAdjacentHTML('beforeend','<div class="empty">'+ic(L.filter==='fav'?'heart':'tv')+(L.filter==='fav'?'Nenhum canal favorito neste banco<p>Selecione um canal, pressione VOLTAR duas vezes e escolha Favoritar canal.</p>':'Nenhum canal nesta seleção')+'</div>');
  S.zones.banks={items:()=>$('bankChips').children,cols:2,idx:BANK_IDS.indexOf(L.bank),scroll:()=>$('bankChips'),nav:(dir,i)=>{if(dir==='up')return i<2?i:i-2;if(dir==='down')return i>=4?'cats':Math.min(4,i+2);if(dir==='left')return i%2===1?i-1:'side';if(dir==='right')return i<4&&i%2===0?i+1:i;},down:'cats',left:'side',ok:i=>chooseBank(BANK_IDS[i]),hints:[['OK','Abrir banco'],['↓','Categorias e canais'],['VOLTAR segurar 3 s','Opções']]};
  S.zones.cats={items:()=>$('catChips').children,cols:'row',idx:Math.max(0,L.cats.findIndex(c=>c.id===L.filter)),scroll:()=>$('catChips'),up:'banks',down:'grid',left:'side',back:()=>activate('banks'),hints:[['OK','Filtrar'],['↑','Bancos'],['↓','Canais']],
   ok:i=>{L.filter=L.cats[i].id;applyLiveFilter();L.idx=0;go('live',L.list.length?'grid':'cats')}};
- S.zones.grid={items:()=>$('chGrid').children,cols:2,idx:L.idx,scroll:()=>$('chScroll'),up:'cats',left:'side',back:()=>activate('banks'),nav:(dir,i)=>channelGridNav(dir,i,L.list.length,'chGrid','cats'),
-  ok:i=>{if(S.menuOverlay&&S.playing&&S.playing.kind==='live'&&S.playing.c.id===L.list[i].id){closeVideoMenu();return}playLive(L.list,i,'live')},change:i=>{L.idx=i;liveInfo(L.list[i]);scheduleProgramProbe(L.list[i])},ctx:i=>chanCtx(L.list[i]),hints:[['OK','Assistir'],['↑ ↓ ← →','Navegar'],['VOLTAR','Bancos'],['VOLTAR segurar 3 s','Opções e favoritos']]};
+ S.zones.grid={items:()=>$('chGrid').children,cols:2,idx:Math.max(0,(L.idx||0)-pageStart),scroll:()=>$('chScroll'),up:'cats',left:'side',back:()=>activate('banks'),nav:(dir,i)=>{
+   const cols=channelGridColumns('chGrid');
+   if(dir==='down'&&i+cols>=visibleChannels.length&&pageStart+visibleChannels.length<L.list.length){L.idx=pageStart+visibleChannels.length;go('live','grid');return true}
+   if(dir==='up'&&i<cols&&pageStart>0){L.idx=pageStart-1;go('live','grid');return true}
+   return channelGridNav(dir,i,visibleChannels.length,'chGrid','cats')},
+   ok:i=>{const actual=pageStart+i;if(S.menuOverlay&&S.playing&&S.playing.kind==='live'&&S.playing.c.id===L.list[actual].id){closeVideoMenu();return}playLive(L.list,actual,'live')},change:i=>{L.idx=pageStart+i;liveInfo(L.list[L.idx]);scheduleProgramProbe(L.list[L.idx])},ctx:i=>chanCtx(L.list[pageStart+i]),hints:[['OK','Assistir'],['↑ ↓ ← →','Navegar'],['VOLTAR','Bancos'],['VOLTAR segurar 3 s','Opções e favoritos']]};
  if(!L.list.length)liveInfo(null);
  fetchGuideForTiles(false);
  return 'grid'}
@@ -1028,7 +1035,13 @@ window.mophieBack=()=>remoteBack();window.mophieInfo=()=>{if(window.MophieUpdate
 // Chamado pela Activity.dispatchKeyEvent antes que a WebView consuma os eventos do controle da Android TV.
 window.mophieRemoteKey=(key)=>onKey({key,preventDefault(){},stopPropagation(){}});
 window.addEventListener('resize',()=>{if(S.zone)applyFocus()});
- window.addEventListener('mophie:catalog-updated',ev=>{if(ev.detail&&ev.detail.name==='RedeCanais'&&S.section==='sourceSearch'&&!S.playing)go('sourceSearch','srcSearchKeys')});
+ let sourceRepaintTimer=null;
+ window.addEventListener('mophie:catalog-updated',ev=>{
+  if(!ev.detail||ev.detail.name!=='RedeCanais'||S.playing)return;
+  if(S.section!=='sourceSearch'&&S.section!=='sourceCatalog')return;
+  clearTimeout(sourceRepaintTimer);
+  sourceRepaintTimer=setTimeout(()=>{if(!S.playing&&(S.section==='sourceSearch'||S.section==='sourceCatalog'))go(S.section,S.zone)},2200);
+ });
 function updateClock(){$('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const on=navigator.onLine;$('net').className=on?'':'off';$('net').innerHTML=on?ic('wifi'):ic('wifiOff')+'Sem conexão'}
 window.addEventListener('online',updateClock);window.addEventListener('offline',updateClock);
 
