@@ -11,7 +11,7 @@
    ['series','/browse-novelas-videos-1-date.html','Novelas']
   ],match:/^\/[^/?#]+_[0-9a-f]{7,16}\.html$/i}
  };
- const CACHE_KEY='mophietv_metadata_catalog_8',MAX_AGE=6*3600000,MAX_ITEMS=20000,MAX_PAGES=5;
+ const CACHE_KEY='mophietv_metadata_catalog_8',MAX_AGE=6*3600000,MAX_ITEMS=100000,MAX_PAGES=5;
  const all=new Map(),ongoing=new Map(),deepTasks=new Map(),moreTasks=new Map();
  const DB_NAME='mophie-catalog-cache',STORE='catalogs';
  function openDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB indisponível'));
@@ -127,7 +127,7 @@
      return it
     })),pages:pages.length}
    }));
-   const map=new Map(),errors=[],states=[];let loadedPages=0;for(const part of settled){if(part.status==='rejected'){errors.push(String(part.reason?.message||part.reason));continue}
+   const map=new Map((force&&old&&Array.isArray(old.items)?old.items:[]).map(it=>[it.id,it])),errors=[],states=[];let loadedPages=0;for(const part of settled){if(part.status==='rejected'){errors.push(String(part.reason?.message||part.reason));continue}
     loadedPages+=part.value.pages;states.push({section:part.value.section,next:part.value.next,pages:part.value.pages});
     for(const it of part.value.items){const prev=map.get(it.id);if(prev){if(!prev.poster&&it.poster)prev.poster=it.poster;if(!prev.url&&it.url)prev.url=it.url;if(!prev.genre&&it.genre)prev.genre=it.genre}
      else if(map.size<MAX_ITEMS)map.set(it.id,it)}}
@@ -171,13 +171,13 @@
  }
  function loadMore(name){if(moreTasks.has(name))return moreTasks.get(name);
   const task=loadMoreBatch(name).finally(()=>moreTasks.delete(name));moreTasks.set(name,task);return task}
- function hasMore(data){return !!(data&&data.items.length<MAX_ITEMS&&data.states&&data.states.some(s=>s.next&&s.pages<150))}
+ function hasMore(data){return !!(data&&data.items.length<MAX_ITEMS&&data.states&&data.states.some(s=>s.next&&s.pages<5000))}
  function scheduleSync(name){if(name!=='RedeCanais'||deepTasks.has(name))return;
   setTimeout(()=>{if(!deepTasks.has(name))syncAll(name).catch(()=>{})},3500)}
  function syncAll(name){if(name!=='RedeCanais')return Promise.reject(Error('Fonte não autorizada'));
   if(deepTasks.has(name))return deepTasks.get(name);
   const task=(async()=>{
-   let count=0;while(count++<150){
+   let count=0;while(count++<1200){
     const data=all.get(name)||await readDB(name)||readCache(name);
     if(!hasMore(data)||navigator.onLine===false)break;
     if(window.__mophie&&window.__mophie.S&&window.__mophie.S.playing){await pause(5000);continue}
@@ -190,5 +190,13 @@
  }
  function get(name){return all.get(name)||readCache(name)||null}
  function homepage(name){return CONFIG[name]?.base+'/'||''}
- window.MophieSources={load,loadMore,syncAll,get,homepage,providers:Object.keys(CONFIG),validURL,metaImage,posterSrc};
+ // Restaurar o catálogo integral do IndexedDB ao iniciar: localStorage contém só uma amostra.
+  readDB('RedeCanais').then(data=>{
+   if(!data||!Array.isArray(data.items)||!data.items.length)return;
+   const current=all.get('RedeCanais');if(current&&current.items.length>=data.items.length)return;
+   all.set('RedeCanais',data);
+   try{window.dispatchEvent(new CustomEvent('mophie:catalog-updated',{detail:{name:'RedeCanais',count:data.items.length,pages:data.pages||0}}))}catch(e){}
+   if(navigator.onLine!==false)scheduleSync('RedeCanais');
+  }).catch(()=>{});
+  window.MophieSources={load,loadMore,syncAll,get,homepage,providers:Object.keys(CONFIG),validURL,metaImage,posterSrc};
 })();
