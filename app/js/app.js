@@ -3,13 +3,13 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.3';
+const VERSION='1.6.4';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const KEY='mophietv_tcl_1';
 const HOLD_BACK_MS=3000;
 const PROFILE_FIELDS=['vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'];
-const PROVIDERS=[{name:'MegaFilmes',desc:'Filmes e séries',available:true,metadataOnly:true},{name:'Pluto TV',desc:'Conteúdo gratuito',available:true},{name:'XilftenTV',desc:'Filmes e séries',available:true,metadataOnly:true},{name:'PobreFlix',desc:'Filmes, séries e animes',available:true,metadataOnly:true},{name:'Animes Orion',desc:'Animes, episódios e filmes',available:true,metadataOnly:true},{name:'RedeCanais',desc:'Filmes, séries, animes, desenhos e novelas',available:true,metadataOnly:true}];
+const PROVIDERS=[{name:'Pluto TV',desc:'Filmes e séries · catálogo oficial',available:true},{name:'RedeCanais',desc:'Lista de títulos · reprodução conforme disponibilidade',available:true,metadataOnly:true}];
 const AVATAR_FILES=Array.from({length:107},(_,i)=>'avatars/'+(i+1)+'.png');
 const store=(()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){return {}}})();
 ['favorites','vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'].forEach(k=>{if(!store[k]||typeof store[k]!=='object'||Array.isArray(store[k]))store[k]={}});
@@ -30,7 +30,7 @@ let currentProfileId=null;
 function emptyProfileData(){return {vodFav:{},vodProg:{},vodWatched:{},vodSeriesLast:{},sourceProg:{}}}
 function profileRecord(id){if(!store.profileData[id])store.profileData[id]=emptyProfileData();PROFILE_FIELDS.forEach(f=>{if(!store.profileData[id][f]||typeof store.profileData[id][f]!=='object')store.profileData[id][f]={}});return store.profileData[id]}
 function selectProfile(id){const p=store.mophieProfiles.find(x=>x.id===id);if(!p)return false;currentProfileId=id;store.activeProfileId=id;const data=profileRecord(id);PROFILE_FIELDS.forEach(f=>store[f]=data[f]);persist();return true}
-function addProfile(name){if(store.mophieProfiles.length>=5)return null;let id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);const p={id,name:name||'Perfil '+(store.mophieProfiles.length+1),avatar:normalizeAvatar(store.mophieProfiles.length)};store.mophieProfiles.push(p);if(store.mophieProfiles.length===1&&!store.oldVodMigrated){let data=profileRecord(id);PROFILE_FIELDS.forEach(f=>{data[f]=store[f]&&typeof store[f]==='object'?JSON.parse(JSON.stringify(store[f])):{}});store.oldVodMigrated=true}return p}
+function addProfile(name){if(store.mophieProfiles.length>=5)return null;let id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);const p={id,name:name||'',avatar:normalizeAvatar(store.mophieProfiles.length)};store.mophieProfiles.push(p);if(store.mophieProfiles.length===1&&!store.oldVodMigrated){let data=profileRecord(id);PROFILE_FIELDS.forEach(f=>{data[f]=store[f]&&typeof store[f]==='object'?JSON.parse(JSON.stringify(store[f])):{}});store.oldVodMigrated=true}return p}
 function applyScale(){document.documentElement.style.setProperty('--ui-scale',(store.uiScale/100).toFixed(2))}
 applyScale();
 let embeddedCatalog=JSON.parse(JSON.stringify(DATA));
@@ -78,7 +78,7 @@ const V={movie:{cat:1,grid:0,q:'',kb:0,res:0},series:{cat:1,grid:0,q:'',kb:0,res
 const F={tab:0,idx:[0,0,0]};
 const ST={idx:0,confirmAt:0};
 const FL={profileIdx:0,providerIdx:0,provider:'Pluto TV',homeRow:0,homeIndexes:{},editId:null,editName:'',editIdx:0,avatarDraft:null,editorForId:null,avatarIdx:0};
-const SRC={error:'',rows:[],row:0,indices:{},item:null,playerError:'',choiceResult:null,choiceError:'',choiceLoading:false,choiceItems:[],choiceIdx:0,choiceItem:null,choiceOrigin:null};
+const SRC={error:'',rows:[],row:0,listKind:'all',listPage:0,indices:{},item:null,playerError:'',choiceResult:null,choiceError:'',choiceLoading:false,choiceItems:[],choiceIdx:0,choiceItem:null,choiceOrigin:null};
 const DIAG={open:false,idx:0};
 let srcFrameTimer=null;
 const GUIDE={open:false,idx:0,items:[],channel:null,description:false,data:null,loading:false};
@@ -158,20 +158,21 @@ function renderProfiles(){S.sideCurrent='mophieflix';markSide();setTitle('Mophie
  return 'profiles'}
 const NAME_KEYS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
 function clearProfileDraft(){FL.editName='';FL.editId=null;FL.avatarDraft=null;FL.editorForId=null;FL.avatarIdx=0;FL.editIdx=0}
-function cancelProfileEdit(){clearProfileDraft();go('mophieflix')}
+function cancelProfileEdit(){const p=store.mophieProfiles.find(x=>x.id===FL.editId);if(p&&!p.name){store.mophieProfiles=store.mophieProfiles.filter(x=>x.id!==p.id);delete store.profileData[p.id];if(currentProfileId===p.id){currentProfileId=null;store.activeProfileId=null}persist()}clearProfileDraft();go('mophieflix')}
 function renderProfileEdit(){
  const p=store.mophieProfiles.find(x=>x.id===(FL.editId||currentProfileId));
  if(!p){cancelProfileEdit();return null}
  FL.editId=p.id;
  if(FL.editorForId!==p.id){FL.editorForId=p.id;FL.editName=p.name;FL.avatarDraft=normalizeAvatar(p.avatar);FL.avatarIdx=avatarIndex(p.avatar);FL.editIdx=0}
- setTitle('Editar perfil','Primeiro escolha o nome, depois a foto');
+ setTitle(p.name?'Editar perfil':'Criar perfil','Digite o nome e escolha uma foto');
  $('view').innerHTML='<div class="profile-name-editor" id="profileNameScroll">'+
  '<div class="profile-edit-heading"><h2>Como vamos chamar você?</h2><p>Digite o nome usando o controle TCL. Depois escolha sua foto.</p></div>'+
- '<div class="profile-edit-preview"><div class="profile-preview-photo" id="editPreviewPhoto">'+avatarMarkup(FL.avatarDraft,FL.editName)+'</div><div class="profile-preview-copy"><div class="profile-preview-label">NOME DO PERFIL</div><h3 id="editTitle">'+esc(FL.editName||'Perfil')+'</h3><span>Foto atual · altere pelo botão abaixo</span></div></div>'+
+ '<div class="profile-edit-preview"><div class="profile-preview-photo" id="editPreviewPhoto" role="button" aria-label="Escolher foto do perfil">'+avatarMarkup(FL.avatarDraft,FL.editName)+'<span class="profile-photo-overlay">'+ic('image')+' Escolher foto</span></div><div class="profile-preview-copy"><div class="profile-preview-label">NOME DO PERFIL</div><h3 id="editTitle">'+esc(FL.editName||'Digite o nome')+'</h3><span>Selecione a foto acima ou o botão ESCOLHER FOTO</span></div></div>'+
  '<div class="profile-keyboard" id="nameKeys">'+NAME_KEYS.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'<div class="kb-key">Espaço</div><div class="kb-key">Apagar</div></div>'+
  '<div class="profile-editor-actions" id="editActions"><div class="btn">'+ic('image')+'Escolher foto de perfil</div><div class="btn">'+ic('check')+'Salvar perfil</div><div class="btn profile-delete">'+ic('x')+'Excluir perfil</div></div>'+
  '</div>';
- const redraw=()=>{$('editTitle').textContent=FL.editName||'Perfil'};
+ const redraw=()=>{$('editTitle').textContent=FL.editName||'Digite o nome'};
+  $('editPreviewPhoto').addEventListener('click',()=>{FL.avatarIdx=avatarIndex(FL.avatarDraft);go('avatarPicker')});
  S.zones.editKeys={items:()=>$('nameKeys').children,cols:6,idx:FL.editIdx,scroll:()=>$('profileNameScroll'),down:'editActions',back:cancelProfileEdit,left:'side',change:i=>{FL.editIdx=i},ok:i=>{
   if(i<NAME_KEYS.length){if(FL.editName.length<18)FL.editName+=NAME_KEYS[i]}
   else if(i===36){if(FL.editName.length<18)FL.editName+=' '}
@@ -179,7 +180,7 @@ function renderProfileEdit(){
   redraw()}};
  S.zones.editActions={items:()=>$('editActions').children,cols:'row',idx:0,scroll:()=>$('profileNameScroll'),up:'editKeys',back:cancelProfileEdit,left:'side',ok:i=>{
   if(i===0){FL.avatarIdx=avatarIndex(FL.avatarDraft);go('avatarPicker');return}
-  if(i===1){p.name=FL.editName.trim().slice(0,18)||'Perfil';p.avatar=normalizeAvatar(FL.avatarDraft);selectProfile(p.id);clearProfileDraft();persist();go('providers');return}
+  if(i===1){if(!FL.editName.trim()){toast('Digite o nome do perfil para continuar','alert');activate('editKeys');return}p.name=FL.editName.trim().slice(0,18);p.avatar=normalizeAvatar(FL.avatarDraft);selectProfile(p.id);clearProfileDraft();persist();go('providers');return}
   if(Date.now()-(ST.profileConfirmAt||0)>3500){ST.profileConfirmAt=Date.now();toast('Pressione OK novamente para excluir o perfil','alert');return}
   if(store.mophieProfiles.length===1){toast('Crie outro perfil antes de excluir este','alert');return}
   store.mophieProfiles=store.mophieProfiles.filter(x=>x.id!==p.id);delete store.profileData[p.id];
@@ -217,6 +218,7 @@ function renderSourceCatalog(){if(!currentProfileId){go('mophieflix');return nul
   if(!SRC.loading){SRC.loading=name;SOURCES.load(name).then(()=>{SRC.error='';if(S.section==='sourceCatalog'&&FL.provider===name)go('sourceCatalog')}).catch(e=>{SRC.error=e.message||'Falha ao consultar o site';if(S.section==='sourceCatalog'&&FL.provider===name)go('sourceCatalog')}).finally(()=>{SRC.loading=null})}
   if(SRC.error){$('view').innerHTML='<div class="empty">'+ic('wifiOff')+'Não foi possível consultar '+esc(name)+'<p>'+esc(SRC.error)+' — algumas fontes não permitem acesso pela WebView.</p><div class="actions" id="srcErrActions"><div class="btn">'+ic('refresh')+'Tentar novamente</div><div class="btn">'+ic('chevronRight')+'Voltar</div></div></div>';
    S.zones.srcErr={items:()=>$('srcErrActions').children,cols:'row',idx:0,ok:i=>{if(i){SRC.error='';go('providers')}else{SRC.error='';SRC.loading=null;SOURCES.load(name,true).then(()=>{if(S.section==='sourceCatalog')go('sourceCatalog')}).catch(e=>{SRC.error=e.message;go('sourceCatalog')})}},back:()=>go('providers')};return 'srcErr'}return null}
+ if(name==='RedeCanais')return renderRedeList(data);
  const items=data.items||[];
  // Um título por fileira: destaques não são duplicados em Filmes/Séries/Animes.
  const unique=new Map();for(const it of items){const id=(it.url||'').toLowerCase()||normal(it.name)+'|'+it.type;if(!unique.has(id))unique.set(id,it)}
@@ -250,15 +252,44 @@ function renderSourceCatalog(){if(!currentProfileId){go('mophieflix');return nul
  SRC.rows.forEach((r,i)=>{S.zones['source'+i]={items:()=>$('sourceRail'+i).children,cols:'row',idx:Math.min(SRC.indices[name+'_'+i]||0,r.items.length-1),scroll:()=>$('sourceScroll'+i),up:i?'source'+(i-1):'srcActions',down:i<SRC.rows.length-1?'source'+(i+1):null,left:'side',back:()=>go('providers'),change:j=>{SRC.row=i;SRC.indices[name+'_'+i]=j;ensureVisible($('sourceRail'+i),$('srcScroll'),false)},ok:j=>{SRC.item=r.items[j];SRC.playerError='';go('sourceDetails')},hints:[['OK','Informações'],['← →','Títulos'],['↑ ↓','Categorias'],['VOLTAR','Provedores']]}});
  return SRC.rows.length?'source'+Math.min(SRC.row,SRC.rows.length-1):'srcActions'}
 
+/* RedeCanais: lista paginada com todos os metadados no cache. */
+function renderRedeList(data){
+ const all=data.items||[],kind=SRC.listKind||'all',filtered=kind==='all'?all:all.filter(x=>x.type===kind);
+ const size=64,pages=Math.max(1,Math.ceil(filtered.length/size));
+ SRC.listPage=Math.max(0,Math.min(SRC.listPage||0,pages-1));
+ const start=SRC.listPage*size,shown=filtered.slice(start,start+size);
+ const tabs=[['all','Todos'],['movie','Filmes'],['series','Séries'],['anime','Animes']];
+ setTitle('RedeCanais','Lista de títulos · '+all.length.toLocaleString('pt-BR')+' registrados · sem capas');
+ $('view').innerHTML='<div class="source-list-layout">'+
+ '<div class="source-list-heading"><h2>RedeCanais</h2><p>Todos os títulos no catálogo local; vídeo somente ao abrir</p></div>'+
+ '<div class="source-list-toolbar" id="srcActions"><div class="btn">'+ic('search')+'Buscar</div>'+
+ tabs.map(([k,v])=>'<div class="btn'+(kind===k?' chosen':'')+'">'+esc(v)+'</div>').join('')+
+ '<div class="btn">'+ic('refresh')+'Sincronizar</div><div class="btn">'+ic('users')+'Fontes</div></div>'+
+ '<div class="source-list-summary">'+filtered.length.toLocaleString('pt-BR')+' títulos · '+(data.pages||0)+' páginas consultadas'+((data.states||[]).some(x=>x.next)?' · atualização em segundo plano':'')+'</div>'+
+ '<div class="source-title-scroll" id="sourceScroll0"><div class="source-title-list" id="sourceRail0">'+
+ shown.map((it,i)=>'<div class="source-title-row"><span class="source-title-index">'+String(start+i+1).padStart(3,'0')+'</span><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('')+
+ '</div></div><div class="source-list-pager" id="sourcePages"><div class="btn">'+ic('chevronLeft')+'Anterior</div><div class="btn">Página '+(SRC.listPage+1)+' / '+pages+'</div><div class="btn">Próxima'+ic('chevronRight')+'</div></div>'+
+ ((data.errors||[]).length?'<p class="src-note source-error">A coleta sofreu restrições; títulos salvos seguem disponíveis.</p>':'')+'</div>';
+ S.zones.srcActions={items:()=>$('srcActions').children,cols:'row',idx:0,down:shown.length?'source0':'sourcePages',left:'side',back:()=>go('providers'),ok:i=>{
+  if(i===0){SRC.search='';SRC.searchIdx=0;SRC.searchResultIdx=0;go('sourceSearch');return}
+  if(i>=1&&i<=4){SRC.listKind=tabs[i-1][0];SRC.listPage=0;go('sourceCatalog','srcActions');return}
+  if(i===5){toast('Sincronizando catálogo público','info');SOURCES.syncAll('RedeCanais').then(()=>{if(S.section==='sourceCatalog')go('sourceCatalog','srcActions')}).catch(e=>toast('Falha de sincronização: '+e.message,'alert'));return}
+  go('providers');}};
+ S.zones.source0={items:()=>$('sourceRail0').children,cols:2,idx:0,scroll:()=>$('sourceScroll0'),up:'srcActions',down:'sourcePages',left:'side',back:()=>go('providers'),ok:i=>{SRC.item=shown[i];SRC.playerError='';go('sourceDetails')}};
+ S.zones.sourcePages={items:()=>$('sourcePages').children,cols:'row',idx:2,up:shown.length?'source0':'srcActions',left:'side',back:()=>go('providers'),ok:i=>{
+  if(i===0&&SRC.listPage>0)SRC.listPage--;else if(i===2&&SRC.listPage<pages-1)SRC.listPage++;else return;go('sourceCatalog','source0')}};
+ return shown.length?'source0':'srcActions';
+}
+
 /* Busca local por título, pelo teclado virtual do controle remoto. */
 function renderSourceSearch(){const data=SOURCES&&SOURCES.get(FL.provider);
  if(!data){go('sourceCatalog');return null}
  setTitle('Buscar em '+FL.provider,'Busque pelo nome · apenas títulos já carregados');
- const q=normal(SRC.search);const matches=(data.items||[]).filter(it=>!q||normal(it.name).includes(q)).slice(0,56);
+ const q=normal(SRC.search);const matches=(data.items||[]).filter(it=>!q||normal(it.name).includes(q)).slice(0,120);
  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('').concat(['Espaço','Apagar']);
- $('view').innerHTML='<div class="source-search-layout"><div class="source-search-side"><h2>Buscar títulos</h2><div class="source-search-query">'+esc(SRC.search||'Digite usando o controle')+'</div><div class="source-search-keys" id="srcSearchKeys">'+letters.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'</div><p class="src-note">OK seleciona a letra. ↓ abre os resultados.</p></div><div class="source-search-results" id="srcSearchResults"><h2>'+matches.length+' resultado(s)</h2><div class="source-search-grid" id="srcResultGrid">'+matches.map(it=>'<div class="poster"><div class="art"><div class="ph">'+esc(it.name)+'</div>'+img(it.poster,it.name)+'</div><div class="cap">'+esc(it.name)+'</div></div>').join('')+'</div></div></div>';
+ $('view').innerHTML='<div class="source-search-layout"><div class="source-search-side"><h2>Buscar títulos</h2><div class="source-search-query">'+esc(SRC.search||'Digite usando o controle')+'</div><div class="source-search-keys" id="srcSearchKeys">'+letters.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'</div><p class="src-note">OK seleciona a letra. ↓ abre os resultados.</p></div><div class="source-search-results" id="srcSearchResults"><h2>'+matches.length+' resultado(s)</h2><div class="source-search-grid source-results-list" id="srcResultGrid">'+matches.map(it=>'<div class="source-title-row"><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('')+'</div></div></div>';
  S.zones.srcSearchKeys={items:()=>$('srcSearchKeys').children,cols:6,idx:Math.min(SRC.searchIdx,letters.length-1),down:matches.length?'srcSearchResults':null,left:'side',back:()=>go('sourceCatalog'),change:i=>{SRC.searchIdx=i},ok:i=>{if(i<36){SRC.search+=letters[i]}else if(i===36){SRC.search+=' '}else SRC.search=SRC.search.slice(0,-1);SRC.searchResultIdx=0;go('sourceSearch','srcSearchKeys')}};
- S.zones.srcSearchResults={items:()=>$('srcResultGrid').children,cols:4,idx:Math.min(SRC.searchResultIdx,Math.max(0,matches.length-1)),up:'srcSearchKeys',left:'srcSearchKeys',scroll:()=>$('srcSearchResults'),back:()=>go('sourceCatalog'),change:i=>{SRC.searchResultIdx=i},ok:i=>{SRC.item=matches[i];SRC.playerError='';go('sourceDetails')}};
+ S.zones.srcSearchResults={items:()=>$('srcResultGrid').children,cols:2,idx:Math.min(SRC.searchResultIdx,Math.max(0,matches.length-1)),up:'srcSearchKeys',left:'srcSearchKeys',scroll:()=>$('srcSearchResults'),back:()=>go('sourceCatalog'),change:i=>{SRC.searchResultIdx=i},ok:i=>{SRC.item=matches[i];SRC.playerError='';go('sourceDetails')}};
  return matches.length&&SRC.searchResultIdx?'srcSearchResults':'srcSearchKeys'}
 
 
@@ -454,8 +485,8 @@ function hideGuideSplash(){if($('guideSync'))$('guideSync').hidden=true}
 async function startGuideSync(showSplash){
  if(guideSyncInProgress)return;
  guideSyncInProgress=true;const run=++syncRun;
- const all=allGuideChannels(),total=all.length,priority=Math.min(24,total);
- if(showSplash){$('guideSync').hidden=false;syncSplash(0,total,0,'Preparando programação de todos os bancos…')}
+ const all=allGuideChannels().slice(0,72),total=all.length,priority=Math.min(10,total);
+ if(showSplash){$('guideSync').hidden=false;syncSplash(0,total,0,'Preparando os canais principais…')}
  let done=0,matched=0,frontDone=0;
  const timer=setTimeout(()=>{if(run===syncRun)hideGuideSplash()},16000);
  try{
@@ -475,7 +506,7 @@ async function startGuideSync(showSplash){
     await new Promise(resolve=>setTimeout(resolve,40));
    }
   }
-  await Promise.all(Array.from({length:Math.min(4,total)},()=>worker()));
+  await Promise.all(Array.from({length:Math.min(2,total)},()=>worker()));
  }finally{clearTimeout(timer);hideGuideSplash();guideSyncInProgress=false;
   if(done)toast('EPG: '+matched+' de '+done+' canais com programação confirmada','info');}
 }
@@ -546,7 +577,7 @@ function renderSearch(kind){const st=V[kind];
  S.zones.kb={items:()=>$('kb').children,cols:6,idx:st.kb,left:'cats',right:()=>hits.length?'res':null,back:()=>activate('cats'),change:i=>{st.kb=i},hints:[['OK','Digitar'],['→','Resultados'],['VOLTAR','Categorias']],
   nav:(dir,i)=>{if(dir==='down'&&i>=30&&i<36)return 36+Math.floor((i-30)/2);if(dir==='up'&&i>=36)return 30+(i-36)*2},
   ok:i=>{if(i<36){if(st.q.length<40)st.q+=KB[i]}else if(i===36){if(st.q&&!/ $/.test(st.q))st.q+=' '}else if(i===37)st.q=st.q.slice(0,-1);else st.q='';
-   $('q').textContent=st.q;clearTimeout(timer);timer=setTimeout(results,180)}};
+   $('q').textContent=st.q;clearTimeout(timer);results()}};
  S.zones.res={items:()=>$('rGrid').children,cols:5,idx:st.res,scroll:()=>$('rScroll'),left:'kb',back:()=>activate('kb'),ok:i=>openDetails(hits[i]),change:i=>{st.res=i},ctx:i=>vodCtx(hits[i]),hints:[['OK','Detalhes'],['VOLTAR','Teclado']]}}
 
 /* ---------- detalhes ---------- */
@@ -962,7 +993,19 @@ function playerKey(key){const P=S.playing;
  if(key==='ArrowUp'){volume(5);return}if(key==='ArrowDown'){volume(-5);return}}
 const NAV=['ChannelUp','ChannelDown','Info','Guide','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','NumpadEnter','Escape','Backspace','Menu','m','M','ContextMenu'];
 const DIRS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
-function onKey(ev){const key=ev.key;if(window.MophieUpdater&&MophieUpdater.isOpen()){if(ev.preventDefault)ev.preventDefault();if(ev.stopPropagation)ev.stopPropagation();MophieUpdater.key(key);return}if(window.MophieVideoTest&&MophieVideoTest.isOpen()){ev.preventDefault();ev.stopPropagation();MophieVideoTest.key(key);return}if(DIAG.open){if(ev.preventDefault)ev.preventDefault();diagnosticKey(key);return}if(!NAV.includes(key)&&!/^[0-9]$/.test(key)&&!['f','F','s','S','MediaPlayPause','AudioVolumeMute'].includes(key))return;ev.preventDefault();ev.stopPropagation();
+function onKey(ev){const key=ev.key;
+ if(!S.playing&&!S.drawer.open&&!(window.MophieUpdater&&MophieUpdater.isOpen())&&
+    (S.section==='sourceSearch'||S.section==='profileEdit'||((S.section==='movies'||S.section==='series')&&V[S.section==='movies'?'movie':'series'].cat===0))){
+  const ch=key===' '?' ':key.length===1&&/[a-z0-9À-ÿ]/i.test(key)?key.toUpperCase():null;
+  if(ch!==null||key==='Backspace'){
+   if(ev.preventDefault)ev.preventDefault();if(ev.stopPropagation)ev.stopPropagation();
+   if(S.section==='sourceSearch'){SRC.search=key==='Backspace'?SRC.search.slice(0,-1):(SRC.search+ch).slice(0,55);SRC.searchResultIdx=0;go('sourceSearch','srcSearchKeys');return}
+   if(S.section==='profileEdit'){FL.editName=key==='Backspace'?FL.editName.slice(0,-1):(FL.editName+ch).slice(0,18);const t=$('editTitle');if(t)t.textContent=FL.editName||'Digite o nome';return}
+   const st=V[S.section==='movies'?'movie':'series'];st.q=key==='Backspace'?st.q.slice(0,-1):(st.q+ch).slice(0,40);st.res=0;
+   renderSearch(S.section==='movies'?'movie':'series');activate('kb',st.kb);return;
+  }
+ }
+if(window.MophieUpdater&&MophieUpdater.isOpen()){if(ev.preventDefault)ev.preventDefault();if(ev.stopPropagation)ev.stopPropagation();MophieUpdater.key(key);return}if(window.MophieVideoTest&&MophieVideoTest.isOpen()){ev.preventDefault();ev.stopPropagation();MophieVideoTest.key(key);return}if(DIAG.open){if(ev.preventDefault)ev.preventDefault();diagnosticKey(key);return}if(!NAV.includes(key)&&!/^[0-9]$/.test(key)&&!['f','F','s','S','MediaPlayPause','AudioVolumeMute'].includes(key))return;ev.preventDefault();ev.stopPropagation();
  if(GUIDE.open){guideKey(key);return}
  if(key==='Escape'||key==='Backspace'){remoteBack();return}clearBackHold();if(vodBackTimer){clearTimeout(vodBackTimer);vodBackTimer=null}
  if(key==='Menu'||key==='ContextMenu'||key==='m'||key==='M'){clearTimeout(vodBackTimer);vodBackTimer=null;if(S.drawer.open)closeDrawer();else openDrawer();return}
@@ -985,6 +1028,7 @@ window.mophieBack=()=>remoteBack();window.mophieInfo=()=>{if(window.MophieUpdate
 // Chamado pela Activity.dispatchKeyEvent antes que a WebView consuma os eventos do controle da Android TV.
 window.mophieRemoteKey=(key)=>onKey({key,preventDefault(){},stopPropagation(){}});
 window.addEventListener('resize',()=>{if(S.zone)applyFocus()});
+ window.addEventListener('mophie:catalog-updated',ev=>{if(ev.detail&&ev.detail.name==='RedeCanais'&&S.section==='sourceSearch'&&!S.playing)go('sourceSearch','srcSearchKeys')});
 function updateClock(){$('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const on=navigator.onLine;$('net').className=on?'':'off';$('net').innerHTML=on?ic('wifi'):ic('wifiOff')+'Sem conexão'}
 window.addEventListener('online',updateClock);window.addEventListener('offline',updateClock);
 
@@ -998,6 +1042,6 @@ function boot(){setInterval(()=>{refreshProgramTiles();if(S.section==='live')fet
  // Checagem de atualização já ocorreu antes de iniciar a TV (startGate).
  if(Date.now()-(store.updated||0)>6*3600000)setTimeout(()=>{if(navigator.onLine)refreshAll()},2500);
  // Pré-carrega o catálogo de filmes/séries em segundo plano, sem disputar a reprodução.
- setTimeout(()=>{if(navigator.onLine&&!CAT.loaded()&&!S.playing)CAT.load().catch(()=>{})},9000)}
+ setTimeout(()=>{if(navigator.onLine&&!CAT.loaded()&&!S.playing)CAT.load().catch(()=>{})},18000)}
 window.__mophie={S,L,V,store,go,version:VERSION,mouse:window.MophieVirtualMouse};
 if(window.MophieUpdater&&typeof MophieUpdater.startGate==='function')MophieUpdater.startGate(boot);else {console.error('Verificador obrigatorio ausente: aplicativo bloqueado');document.getElementById('mophie-update-modal').hidden=false;document.getElementById('mophie-update-status').textContent='Verificador indisponivel';document.getElementById('mophie-update-caption').textContent='Reinstale a Mophie TV oficial.';}})();
