@@ -520,3 +520,31 @@ body.virtual-mouse-mode #playerDiagBadge{opacity:.25}
 
 /* RedeCanais: alternativa de navegação de primeira parte, sem iframe */
 #sourceDetailActions{flex-wrap:wrap}
+
+/* v1.6.4: RedeCanais em lista de texto para Android TV. */
+.source-list-layout{height:100%;min-height:0;display:flex;flex-direction:column;gap:.75rem;padding:.5rem 1.5rem 1rem .25rem;box-sizing:border-box}
+.source-list-heading{display:flex;gap:1.1rem;align-items:baseline;flex-wrap:wrap}
+.source-list-heading h2{font-size:2.1rem;margin:0;font-weight:750}
+.source-list-heading p{margin:0;color:var(--text-2);font-size:1rem}
+.source-list-toolbar{display:flex;gap:.55rem;overflow-x:auto;flex-shrink:0;padding:.4rem .2rem .65rem;scrollbar-width:thin}
+.source-list-toolbar .btn{flex-shrink:0;padding:.7rem .95rem;white-space:nowrap;font-size:1.02rem}
+.source-list-toolbar .btn.chosen{border:1px solid var(--accent-hi);color:var(--accent-hi)}
+.source-list-summary{font-size:1rem;color:var(--text-2);flex-shrink:0}
+.source-title-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:.25rem .5rem}
+.source-title-list,.source-results-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem .8rem}
+.source-title-row{display:flex;align-items:center;gap:.8rem;background:var(--surface-2);border:2px solid transparent;border-radius:.65rem;padding:.72rem .9rem;min-width:0;min-height:2.7rem;font-size:1.04rem;color:var(--text);box-sizing:border-box}
+.source-title-row.focused{background:var(--accent);border-color:var(--accent-hi);color:var(--accent-ink);transform:scale(1.006)}
+.source-title-index{font-size:.84rem;min-width:2.4rem;color:var(--text-3);font-variant-numeric:tabular-nums}
+.source-title-row.focused .source-title-index{color:var(--accent-ink)}
+.source-title-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.source-title-chevron{flex-shrink:0;opacity:.7;font-size:1.4rem}
+.source-list-pager{display:flex;justify-content:center;gap:1rem;flex-shrink:0}
+.source-list-pager .btn{min-width:9rem;text-align:center;justify-content:center}
+.source-results-list{gap:.5rem}
+.source-results-list .source-title-row{min-height:3.5rem}
+.profile-preview-photo{position:relative;cursor:pointer;overflow:hidden;outline:none}
+.profile-preview-photo .profile-photo-overlay{display:flex;align-items:center;justify-content:center;gap:.15rem;position:absolute;bottom:0;left:0;right:0;min-height:1.8rem;background:rgba(5,5,8,.88);color:#fff;font-size:.65rem;font-weight:700;text-align:center}
+.profile-photo-overlay .ic{width:.8rem;height:.8rem}
+.profile-editor-actions .btn:first-child{background:var(--accent-soft);color:var(--accent-hi);border:2px solid var(--accent);font-weight:700}
+.profile-editor-actions .btn:first-child.focused{background:var(--accent);color:var(--accent-ink)}
+@media(max-width:950px){.source-title-list,.source-results-list{grid-template-columns:1fr}.source-list-heading h2{font-size:1.5rem}.source-list-toolbar .btn{font-size:.89rem}.source-list-pager .btn{min-width:6.5rem}}
