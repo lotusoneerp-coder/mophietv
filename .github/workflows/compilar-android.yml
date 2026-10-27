@@ -1,13 +1,18 @@
-name: Compilar Mophie TV Android - APK sem assinatura
+name: Compilar Mophie TV Android - APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'android_native/**'
+      - '.github/workflows/compilar-android.yml'
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
-
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -16,8 +21,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Verificar JavaScript
+      - name: Verificar sintaxe JavaScript
         run: |
+          set -e
           for f in app/js/*.js; do node --check "$f"; done
 
       - name: Configurar Android SDK
@@ -39,13 +45,37 @@ jobs:
         working-directory: android_native
         run: gradle --no-daemon --stacktrace :app:assembleRelease
 
-      - name: Preparar APK
+      - name: Conferir pacote e versão
         run: |
+          set -euo pipefail
+          APK="android_native/app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='com.mophie.tv' versionCode='33' versionName='1.6.4'"
+
+      - name: Assinar APK quando a chave estiver configurada
+        env:
+          KEYSTORE_B64: ${{ secrets.MOPHIE_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.MOPHIE_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
           mkdir -p dist
-          cp android_native/app/build/outputs/apk/release/app-release-unsigned.apk dist/MophieTV_v1.6.3_UNSIGNED.apk
+          APK="android_native/app/build/outputs/apk/release/app-release-unsigned.apk"
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/mophie-release.jks"
+            export MOPHIE_SIGN_PASS="$KEYSTORE_PASSWORD"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
+              --ks "$RUNNER_TEMP/mophie-release.jks" --ks-key-alias mophietv \
+              --ks-pass env:MOPHIE_SIGN_PASS --key-pass env:MOPHIE_SIGN_PASS \
+              --out dist/MophieTV_v1.6.4_ASSINADO.apk "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_v1.6.4_ASSINADO.apk
+            rm -f "$RUNNER_TEMP/mophie-release.jks"
+          else
+            cp "$APK" dist/MophieTV_v1.6.4_UNSIGNED.apk
+            echo "::warning::Chave de assinatura não configurada: artefato UNSIGNED, não instalável como atualização."
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MophieTV_v1.6.3_APK
-          path: dist/MophieTV_v1.6.3_UNSIGNED.apk
+          name: MophieTV_v1.6.4_APK
+          path: dist/*.apk
           if-no-files-found: error
