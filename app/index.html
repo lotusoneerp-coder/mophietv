@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="theme-color" content="#09090b">
+<title>Mophie TV</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <nav id="side" aria-label="Navegação principal">
+    <div class="side-brand"><img src="logo.png" alt=""><span>Mophie <b>TV</b></span></div>
+    <div id="sideItems" class="side-items"></div>
+  </nav>
+  <main id="main">
+    <header id="top">
+      <div class="top-title"><h1 id="pageTitle"></h1><span id="pageSub"></span></div>
+      <div class="top-status"><span id="net"></span><span id="clock"></span></div>
+    </header>
+    <section id="view"></section>
+    <footer id="hints"></footer>
+  </main>
+</div>
+<aside id="guideSync" class="guide-sync-screen" hidden aria-live="polite">
+ <div class="guide-sync-card">
+ <img src="logo.png" alt="Mophie TV" class="guide-sync-logo">
+ <h2>Sincronizando programação</h2>
+ <p id="guideSyncText">Buscando programas e horários atuais…</p>
+ <div class="guide-sync-track"><div id="guideSyncFill"></div></div>
+ <div id="guideSyncCount">Preparando canais…</div>
+ <small>MeuGuia / mi.tv · Apenas dados confirmados. Os demais canais serão atualizados em segundo plano.</small>
+ </div>
+</aside>
+<section id="player" hidden><div id="playerDiagBadge" hidden aria-live="polite"></div>
+  <video id="video" autoplay playsinline></video>
+  <iframe id="embed" allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *" allowfullscreen tabindex="-1"></iframe>
+  <div id="pauseMark" class="hidden"></div>
+  <div id="mouseCursor" hidden aria-hidden="true">
+    <svg width="32" height="44" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2.5 2.5V34L11 26.3l6.9 15 7.2-3.7-7-14.1h11.4L2.5 2.5Z" fill="#FFFFFF" stroke="#111820" stroke-width="2.5" stroke-linejoin="round"/></svg>
+  </div>
+  <div id="mouseClickFeedback" hidden aria-live="polite"></div>
+  <div id="mouseGuide" hidden>Mouse virtual · Setas: mover · OK: clicar · MENU: opções · VOLTAR: sair · 10 s: ocultar</div>
+  <div id="osd">
+    <div class="osd-row">
+      <span id="osdBadge" class="badge-live"></span>
+      <span id="osdNumber" class="osd-number"></span>
+    </div>
+    <b id="osdTitle"></b>
+    <span id="osdMeta"></span>
+    <div id="osdProgress" class="osd-progress" hidden><span id="osdTime">0:00</span><div class="bar"><i id="osdFill"></i></div><span id="osdDur">0:00</span></div>
+    <div id="osdHelp" class="osd-help"></div>
+  </div>
+  <div id="volumeOsd" class="hidden"><span id="volIcon"></span><div class="track"><i id="volumeFill"></i></div><b id="volumeValue">65</b></div>
+</section>
+<aside id="videoTestPanel" hidden aria-label="Diagnóstico de vídeo">
+ <div class="video-test-card">
+  <h2>Diagnóstico de vídeo · TCL</h2>
+  <p>O teste usa um vídeo MP4 local, sem depender de MegaFilmes, PobreFlix ou internet.</p>
+  <div class="video-test-stage">
+   <video id="videoTestDirect" muted playsinline hidden></video>
+   <iframe id="videoTestFrame" title="Teste de vídeo dentro de iframe" allow="autoplay" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" hidden></iframe>
+   <div id="videoTestStatus">Selecione A ou B e pressione OK.</div>
+  </div>
+  <div id="videoTestMenu"><div>A · Testar vídeo direto</div><div>B · Testar vídeo em iframe</div><div>A imagem ficou preta / Android</div><div>Fechar diagnóstico</div></div>
+  <div id="videoTestResults"></div>
+  <small id="videoTestInfo"></small>
+  <p class="video-test-hint">↑ ↓ escolhe · OK testa · VOLTAR fecha · Fotografe os códigos D201/D202/D211/D212/D220.</p>
+ </div>
+</aside>
+<aside id="diagPanel" hidden>
+ <div class="diag-card"><div class="diag-title" id="diagTitle">Diagnóstico</div><div id="diagMain"></div><div class="diag-recent-title">Últimos registros desta TV</div><div id="diagRecent"></div><div id="diagActions"></div><div class="diag-help">↑ ↓ seleciona · OK confirma · VOLTAR fecha · Informe o código exibido na tela</div></div>
+</aside>
+<aside id="epgPanel" hidden><div class="epg-card"><div class="epg-head"><b id="epgChannel"></b><span>Guia de programação · INFO fecha</span></div><div id="epgStatus" class="epg-status"></div><div id="epgItems" class="epg-items"></div><div id="epgDescription" class="epg-description"></div><div class="epg-footer">↑ ↓ Navegar · OK Detalhes · VOLTAR Fechar</div></div></aside>
+<aside id="drawer" hidden><div class="drawer-card"><div class="drawer-head">Opções</div><div id="drawerItems"></div><div class="drawer-foot">Desenvolvido por Luiz Vinicius · VOLTAR fecha</div></div></aside>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="mophie-update-modal" hidden role="dialog" aria-label="Atualizações da Mophie TV">
+  <div class="update-card"><h2 id="mophie-update-status"></h2><p id="mophie-update-caption"></p>
+  <div id="mophie-update-actions"></div><small>Atualizações assinadas • confirmação de instalação pelo Android</small></div>
+</div>
+<script src="vendor/hls.min.js"></script>
+<script src="channels-data.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/source-catalogs.js"></script>
+<script src="js/source-player.js"></script>
+<script src="js/diagnostics.js"></script>
+<script src="js/cxtv.js"></script>
+<script src="js/live-player.js"></script>
+<script src="js/epg.js"></script>
+<script src="js/published-guide.js"></script>
+<script src="js/virtual-mouse.js"></script>
+<script src="js/updater.js"></script>
+<script src="js/app.js"></script>
+<script src="js/video-test.js"></script>
+</body>
+</html>

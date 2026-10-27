@@ -1,0 +1,12 @@
+# Segurança: assinaturas e arquivos gerados
+keys/
+**/*.pem
+**/*.p12
+**/*.jks
+**/*.keystore
+dist/
+upload_hostinger/
+android_native/.gradle/
+android_native/app/build/
+local.properties
+*.apk

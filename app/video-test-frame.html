@@ -1,0 +1,11 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;background:#080808;color:white;font:14px system-ui">
+<video id="prova" src="video-prova.mp4" muted playsinline autoplay style="width:100%;height:100%;object-fit:contain" controls></video>
+<script>
+(function(){'use strict';
+ const v=document.getElementById('prova');
+ const notify=(event,more)=>{try{parent.postMessage({mophieLocalVideoTest:true,event,seconds:Math.round(v.currentTime*10)/10,ready:v.readyState,error:v.error&&v.error.code,detail:String(more||'').slice(0,90)},'*')}catch(e){}};
+ ['loadedmetadata','canplay','playing','timeupdate','ended','stalled','waiting','error'].forEach(k=>v.addEventListener(k,()=>notify(k)));
+ window.addEventListener('load',()=>{notify('loaded');v.play().catch(e=>notify('rejected',e.name+': '+e.message))});
+})();
+</script></body></html>

@@ -1,0 +1,22 @@
+/* Catálogo BCN4: somente páginas públicas reais da CXTV, sem extração de streams bloqueados. */
+(function(){'use strict';
+ const root='https://www.cxtv.com.br';
+ const seed=[{"id":"BCN4:web-tv-classicos-do-cinema","bank":"BCN4","name":"Web TV Clássicos do Cinema","category":"Filmes","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/web-tv-classicos-do-cinema","tvgId":""},{"id":"BCN4:rede-brasil-de-televisao-rbtv","bank":"BCN4","name":"Rede Brasil de Televisão","category":"Entretenimento","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/rede-brasil-de-televisao-rbtv","tvgId":""},{"id":"BCN4:retro-cartoon","bank":"BCN4","name":"Retro Cartoon","category":"Infantil","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/retro-cartoon","tvgId":""},{"id":"BCN4:rede-tv","bank":"BCN4","name":"RedeTV!","category":"Entretenimento","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/rede-tv","tvgId":""},{"id":"BCN4:sbt","bank":"BCN4","name":"SBT","category":"Entretenimento","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/sbt","tvgId":""},{"id":"BCN4:tv-cultura","bank":"BCN4","name":"TV Cultura","category":"Cultura","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/tv-cultura","tvgId":""},{"id":"BCN4:tv-brasil","bank":"BCN4","name":"TV Brasil","category":"Cultura","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/tv-brasil","tvgId":""},{"id":"BCN4:record-news","bank":"BCN4","name":"Record News","category":"Notícias","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/record-news","tvgId":""},{"id":"BCN4:tv-classicos","bank":"BCN4","name":"TV Clássicos","category":"Filmes","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/tv-classicos","tvgId":""},{"id":"BCN4:sony-one-cinema","bank":"BCN4","name":"Sony One Cinema","category":"Filmes","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/sony-one-cinema","tvgId":""},{"id":"BCN4:web-tv-xtreme","bank":"BCN4","name":"Web TV Xtreme","category":"Infantil","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/web-tv-xtreme","tvgId":""},{"id":"BCN4:web-tv-cine","bank":"BCN4","name":"Web TV Cine","category":"Filmes","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/web-tv-cine","tvgId":""},{"id":"BCN4:awcchannel","bank":"BCN4","name":"AWTV","category":"Entretenimento","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/awcchannel","tvgId":""},{"id":"BCN4:caze-tv-br","bank":"BCN4","name":"CazéTV","category":"Esportes","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/caze-tv-br","tvgId":""},{"id":"BCN4:tv-aracati-hd","bank":"BCN4","name":"TV Aracati HD","category":"Filmes","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/tv-aracati-hd","tvgId":""},{"id":"BCN4:gln-tv","bank":"BCN4","name":"GLN TV","category":"Filmes","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/gln-tv","tvgId":""},{"id":"BCN4:tv-gazeta","bank":"BCN4","name":"TV Gazeta","category":"Entretenimento","url":"","embed":"https://www.cxtv.com.br/tv-ao-vivo/tv-gazeta","tvgId":""}];
+ function clean(t){return String(t||'').replace(/\s+/g,' ').trim().slice(0,110)}
+ function classify(t){const s=t.toLowerCase();if(/not[ií]cias|jornal/.test(s))return 'Notícias';if(/desenhos|educativos|infantil/.test(s))return 'Infantil';if(/esportes|futebol/.test(s))return 'Esportes';if(/filmes|cinema/.test(s))return 'Filmes';if(/cultura|cultural/.test(s))return 'Cultura';return 'Entretenimento'}
+ function fromHTML(html){const d=new DOMParser().parseFromString(html,'text/html'),out=new Map();
+  for(const a of d.querySelectorAll('a[href]')){
+   let u;try{u=new URL(a.getAttribute('href'),root)}catch(e){continue}
+   if(u.hostname!=='www.cxtv.com.br'||!/^\/tv-ao-vivo\/[a-z0-9_-]+\/?$/i.test(u.pathname))continue;
+   const name=clean(a.querySelector('h2,h3,strong')?.textContent||a.querySelector('img')?.getAttribute('alt')||a.textContent).replace(/\s+(?:Brasil|SP|RJ|AM|RS|DF)\s+.*$/,'');
+   if(name.length<3||/^(ao vivo|assistir|ver mais)/i.test(name))continue;
+   if(!out.has(u.pathname))out.set(u.pathname,{id:'BCN4:'+u.pathname.split('/').pop(),bank:'BCN4',name,category:classify(a.textContent),url:'',embed:u.href,tvgId:''});
+  }
+  return [...out.values()].slice(0,950)
+ }
+ async function load(){const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);try{
+   const r=await fetch(root+'/tv/paises/tvs-brasil',{signal:ctrl.signal,credentials:'omit'});if(!r.ok)throw Error('HTTP '+r.status);
+   const body=await r.text();return fromHTML(body)
+  }finally{clearTimeout(timer)}}
+ window.MophieCXTV={seed,fromHTML,load};
+})();
