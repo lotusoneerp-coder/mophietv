@@ -131,9 +131,24 @@ public class MainActivity extends Activity {
         if (web != null) web.evaluateJavascript("javascript:" + expr, null);
     }
 
+    private boolean isMophieHome() {
+        return web != null && "file:///android_asset/index.html".equals(web.getUrl());
+    }
+    private void returnFromExternalPage() {
+        if (web == null) return;
+        web.loadUrl("file:///android_asset/index.html");
+        web.requestFocus();
+    }
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction()!=KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event);
         if (fullscreen!=null) return super.dispatchKeyEvent(event);
+        if (!isMophieHome()) {
+            if (event.getKeyCode()==KeyEvent.KEYCODE_BACK) {
+                returnFromExternalPage();
+                return true;
+            }
+            return super.dispatchKeyEvent(event);
+        }
         String key=null;
         switch(event.getKeyCode()) {
             case KeyEvent.KEYCODE_DPAD_UP: key="ArrowUp"; break;
@@ -156,6 +171,7 @@ public class MainActivity extends Activity {
 
     @Override public void onBackPressed() {
         if (fullscreen!=null) { exitVideoFullscreen(true); return; }
+        if (!isMophieHome()) { returnFromExternalPage(); return; }
         js("window.mophieBack&&window.mophieBack()");
     }
     @Override protected void onDestroy() {
