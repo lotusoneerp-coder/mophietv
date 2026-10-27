@@ -1,0 +1,19 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.mophie.tv'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.mophie.tv'
+        minSdk 23
+        targetSdk 28
+        versionCode 32
+        versionName '1.6.3'
+    }
+    sourceSets {
+        main.assets.srcDirs = [file('../../app')]
+    }
+    buildTypes {
+        release { minifyEnabled false }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
