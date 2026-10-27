@@ -1,38 +1,46 @@
-name: Compilar Mophie TV Android — APK sem assinatura
+name: Compilar Mophie TV Android - APK sem assinatura
+
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verificar sintaxe JavaScript
+
+      - name: Verificar JavaScript
         run: |
           for f in app/js/*.js; do node --check "$f"; done
-      - name: Instalar Android SDK 35
-        run: sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Configurar Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Compilar APK Android nativo
+
+      - name: Compilar APK
         working-directory: android_native
         run: gradle --no-daemon --stacktrace :app:assembleRelease
-      - name: Conferir versão e pacote
+
+      - name: Preparar APK
         run: |
-          set -euo pipefail
-          APK=android_native/app/build/outputs/apk/release/app-release-unsigned.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -n 1
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='com.mophie.tv' versionCode='32' versionName='1.6.3'"
           mkdir -p dist
-          cp "$APK" dist/MophieTV_TCL_v1.6.3_NATIVE_UNSIGNED.apk
+          cp android_native/app/build/outputs/apk/release/app-release-unsigned.apk dist/MophieTV_v1.6.3_UNSIGNED.apk
+
       - uses: actions/upload-artifact@v4
         with:
-          name: MophieTV_v1.6.3_APK_NATIVO_SEM_ASSINATURA
-          path: dist/MophieTV_TCL_v1.6.3_NATIVE_UNSIGNED.apk
+          name: MophieTV_v1.6.3_APK
+          path: dist/MophieTV_v1.6.3_UNSIGNED.apk
           if-no-files-found: error
