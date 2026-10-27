@@ -2,12 +2,6 @@
    Cada fonte funciona apenas quando permite leitura das páginas na WebView. */
 (function(){'use strict';
  const CONFIG={
-  MegaFilmes:{base:'https://megafilmeshd1.com',paths:[['movie','/filmes'],['series','/series']],match:/\/(filme|serie|anime|dorama|novela)\/[\w%-]+\/?$/i},
-  XilftenTV:{base:'https://xilftentv.lat',paths:[['movie','/filmes'],['series','/series/']],match:/\/(filme|filmes|serie|series|tv|movie)\/[\w%-]+\/?$/i},
-  PobreFlix:{base:'https://www.pobreflixhd.site',paths:[['movie','/filmes'],['series','/series']],match:/\/(filme|serie)\/[\w%-]+\/?$/i},
-  'Animes Orion':{base:'https://animesorion.cc',paths:[['anime','/'],['movie','/filmes/'],['anime','/animes/'],['anime','/episodios/']],match:/\/(?:animes|filmes|episodios)\/[\w%-]+\/?$/i},
-  // Estrutura confirmada: /browse-filmes-videos-1-date.html -> /browse-filmes-videos-2-date.html.
-  // Cada vídeo tem página própria /titulo_<id>.html, diferente do padrão /filme/titulo.
   RedeCanais:{base:'https://redecanais.by',paths:[
    ['movie','/browse-filmes-videos-1-date.html','Filmes'],
    ['series','/browse-series-videos-1-date.html','Séries'],
@@ -17,8 +11,23 @@
    ['series','/browse-novelas-videos-1-date.html','Novelas']
   ],match:/^\/[^/?#]+_[0-9a-f]{7,16}\.html$/i}
  };
- const CACHE_KEY='mophietv_metadata_catalog_7',MAX_AGE=6*3600000,MAX_ITEMS=2000,MAX_PAGES=5;
- const all=new Map(),ongoing=new Map();
+ const CACHE_KEY='mophietv_metadata_catalog_8',MAX_AGE=6*3600000,MAX_ITEMS=20000,MAX_PAGES=5;
+ const all=new Map(),ongoing=new Map(),deepTasks=new Map(),moreTasks=new Map();
+ const DB_NAME='mophie-catalog-cache',STORE='catalogs';
+ function openDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB indisponível'));
+  const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+ async function readDB(name){try{const db=await openDB();return await new Promise(resolve=>{
+  const tx=db.transaction(STORE,'readonly'),r=tx.objectStore(STORE).get(name);
+  r.onsuccess=()=>resolve(r.result&&Array.isArray(r.result.items)?r.result:null);r.onerror=()=>resolve(null);
+  tx.oncomplete=()=>db.close();tx.onerror=()=>db.close()})}catch(e){return null}}
+ async function writeDB(name,data){try{const db=await openDB();await new Promise(resolve=>{
+  const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(data,name);
+  tx.oncomplete=()=>resolve();tx.onerror=()=>resolve()});db.close()}catch(e){}}
+ function saveAndNotify(name,data){all.set(name,data);saveCache(name,data);writeDB(name,data).catch(()=>{});
+  try{window.dispatchEvent(new CustomEvent('mophie:catalog-updated',{detail:{name,count:data.items.length,pages:data.pages||0}}))}catch(e){}}
+ function pause(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+
  function validURL(href,base){try{const u=new URL(href,base);return u.protocol==='https:'&&u.hostname.replace(/^www\./,'')===new URL(base).hostname.replace(/^www\./,'')?u.href:''}catch(e){return ''}}
  function clean(s){return String(s||'').replace(/\s+/g,' ').trim().slice(0,130)}
  const bannedImage=/avatar|user[-_]?profile|profile[-_]?picture|user[-_]?photo|favicon|logo|blank|placeholder|loading|pixel|icon[-_]|default[-_]?image|halloween|gravatar/i;
@@ -42,8 +51,8 @@
   const url=validURL(a.getAttribute('href'),cfg.base);if(!url||!cfg.match.test(new URL(url).pathname))continue;
   const nameText=titleOf(a);if(nameText.length<2||nameText.length>110||/^(assistir|ver mais|pr[oó]ximo|anterior|p[aá]gina|in[ií]cio|user profile image|user avatar|profile picture)$/i.test(nameText))continue;
   const card=cardNode(a),section=clean(a.closest('section')?.querySelector('h2,h3')?.textContent||'');
-  let poster=posterSrc(a,cfg.base)||posterSrc(card,cfg.base);
-  if(!poster&&card&&card.parentElement&&card.parentElement.children.length===1)poster=posterSrc(card.parentElement,cfg.base);
+  let poster=name==='RedeCanais'?'':posterSrc(a,cfg.base)||posterSrc(card,cfg.base);
+  if(name!=='RedeCanais'&&!poster&&card&&card.parentElement&&card.parentElement.children.length===1)poster=posterSrc(card.parentElement,cfg.base);
   const rawYear=clean(card?.textContent||a.textContent).match(/\b(?:19|20)\d{2}\b/);
   out.push({id:cfg.base+'|'+new URL(url).pathname,name:nameText,type:inferType(url,section,group),poster,year:rawYear?.[0]||'',url,source:name,summary:'',genre:section});
  }return out}
@@ -102,9 +111,9 @@
   return found;
  }
  function readCache(name){try{const v=JSON.parse(localStorage.getItem(CACHE_KEY+'_'+name)||'null');return v&&Array.isArray(v.items)?v:null}catch(e){return null}}
- function saveCache(name,data){try{localStorage.setItem(CACHE_KEY+'_'+name,JSON.stringify({...data,items:data.items.slice(0,MAX_ITEMS)}))}catch(e){}}
- async function load(name,force){const cfg=CONFIG[name];if(!cfg)throw Error('Fonte não cadastrada');const old=all.get(name)||readCache(name);
-  if(!force&&old&&Date.now()-old.at<MAX_AGE){all.set(name,old);return old}if(ongoing.has(name))return ongoing.get(name);
+ function saveCache(name,data){try{localStorage.setItem(CACHE_KEY+'_'+name,JSON.stringify({...data,items:data.items.slice(0,1000)}))}catch(e){}}
+ async function load(name,force){const cfg=CONFIG[name];if(!cfg)throw Error('Fonte não cadastrada');const old=all.get(name)||await readDB(name)||readCache(name);
+  if(!force&&old&&Date.now()-old.at<MAX_AGE){all.set(name,old);scheduleSync(name);return old}if(ongoing.has(name))return ongoing.get(name);
   const op=(async()=>{const settled=await Promise.allSettled(cfg.paths.map(async([kind,path,label])=>{
     const first=cfg.base+path,queue=[first],seen=new Set(),pages=[],started=Date.now();
     while(queue.length&&pages.length<MAX_PAGES&&Date.now()-started<23000){
@@ -113,7 +122,7 @@
      pages.push(doc);
      for(const next of nextPages(doc,url,cfg))if(!seen.has(next)&&!queue.includes(next))queue.push(next);
     }
-    return {section:path,next:queue[0]||'',items:pages.flatMap(d=>[...fromLinks(d,cfg,kind,name),...fromPosters(d,cfg,name)].map(it=>{
+    return {section:path,next:queue[0]||'',items:pages.flatMap(d=>[...fromLinks(d,cfg,kind,name)].map(it=>{
      if(name==='RedeCanais'){it.type=kind;it.genre=it.genre||label||''}
      return it
     })),pages:pages.length}
@@ -123,14 +132,14 @@
     for(const it of part.value.items){const prev=map.get(it.id);if(prev){if(!prev.poster&&it.poster)prev.poster=it.poster;if(!prev.url&&it.url)prev.url=it.url;if(!prev.genre&&it.genre)prev.genre=it.genre}
      else if(map.size<MAX_ITEMS)map.set(it.id,it)}}
    if(!map.size){if(old){all.set(name,{...old,stale:true,errors});return all.get(name)}throw Error(errors[0]||'Nenhum título público encontrado')}
-   const items=[...map.values()].filter(it=>!(name==='MegaFilmes'&&it.type==='anime'));if(name==='MegaFilmes'||name==='RedeCanais')await enrichMissingPosters(items,cfg);
-   const result={items,at:Date.now(),stale:false,errors,pages:loadedPages,states};all.set(name,result);saveCache(name,result);return result})();
+   const items=[...map.values()]; // Apenas metadados, sem buscar imagens
+   const result={items,at:Date.now(),stale:false,errors,pages:loadedPages,states};saveAndNotify(name,result);scheduleSync(name);return result})();
   ongoing.set(name,op);try{return await op}finally{ongoing.delete(name)}}
  // Busca paginas seguintes SOMENTE onde o site publica links de paginacao.
  // Se o servidor devolver codigo 16, o catalogo fica preservado, sem contornar o bloqueio.
- async function loadMore(name){
+ async function loadMoreBatch(name){
   if(name!=='RedeCanais')throw Error('Carregamento adicional disponivel apenas para RedeCanais');
-  const cfg=CONFIG[name];let previous=all.get(name)||readCache(name);
+  const cfg=CONFIG[name];let previous=all.get(name)||await readDB(name)||readCache(name);
   if(!previous||!Array.isArray(previous.states)||!previous.states.length)previous=await load(name,true);
   const sections=previous.states.map(st=>({...st})),errors=[];
   const settled=await Promise.allSettled(sections.map(async st=>{
@@ -139,7 +148,7 @@
     if(visited.has(u))break;visited.add(u);
     const doc=await readPage(u,11000),entry=cfg.paths.find(x=>x[1]===st.section);
     if(!entry)break;
-    added.push(...fromLinks(doc,cfg,entry[0],name),...fromPosters(doc,cfg,name));pages++;
+    added.push(...fromLinks(doc,cfg,entry[0],name));pages++;
     st.next=nextPages(doc,u,cfg).find(x=>!visited.has(x))||'';u=st.next;
    }
    st.pages+=pages;
@@ -157,10 +166,29 @@
   if(!fetched&&errors.length)throw Error(errors[0]);
   const result={items:[...map.values()],at:Date.now(),stale:false,
                 errors,pages:(previous.pages||0)+fetched,states:updatedStates};
-  all.set(name,result);saveCache(name,result);
+  saveAndNotify(name,result);
   return { ...result,added:result.items.length-previous.items.length };
+ }
+ function loadMore(name){if(moreTasks.has(name))return moreTasks.get(name);
+  const task=loadMoreBatch(name).finally(()=>moreTasks.delete(name));moreTasks.set(name,task);return task}
+ function hasMore(data){return !!(data&&data.items.length<MAX_ITEMS&&data.states&&data.states.some(s=>s.next&&s.pages<150))}
+ function scheduleSync(name){if(name!=='RedeCanais'||deepTasks.has(name))return;
+  setTimeout(()=>{if(!deepTasks.has(name))syncAll(name).catch(()=>{})},3500)}
+ function syncAll(name){if(name!=='RedeCanais')return Promise.reject(Error('Fonte não autorizada'));
+  if(deepTasks.has(name))return deepTasks.get(name);
+  const task=(async()=>{
+   let count=0;while(count++<150){
+    const data=all.get(name)||await readDB(name)||readCache(name);
+    if(!hasMore(data)||navigator.onLine===false)break;
+    if(window.__mophie&&window.__mophie.S&&window.__mophie.S.playing){await pause(5000);continue}
+    try{await loadMore(name)}
+    catch(e){const cached=all.get(name);if(cached){cached.errors=[String(e.message||e)];saveAndNotify(name,cached)}break}
+    await pause(1100);
+   }
+   return all.get(name)||null;
+  })().finally(()=>deepTasks.delete(name));deepTasks.set(name,task);return task;
  }
  function get(name){return all.get(name)||readCache(name)||null}
  function homepage(name){return CONFIG[name]?.base+'/'||''}
- window.MophieSources={load,loadMore,get,homepage,providers:Object.keys(CONFIG),validURL,metaImage,posterSrc};
+ window.MophieSources={load,loadMore,syncAll,get,homepage,providers:Object.keys(CONFIG),validURL,metaImage,posterSrc};
 })();
