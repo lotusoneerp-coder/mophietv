@@ -3,7 +3,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.4';
+const VERSION='1.6.5';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
