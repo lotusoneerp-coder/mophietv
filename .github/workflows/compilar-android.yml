@@ -15,7 +15,6 @@ jobs:
       - name: Verificar sintaxe JavaScript
         run: |
           for f in app/js/*.js; do node --check "$f"; done
-      - uses: android-actions/setup-android@v3
       - name: Instalar Android SDK 35
         run: sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
