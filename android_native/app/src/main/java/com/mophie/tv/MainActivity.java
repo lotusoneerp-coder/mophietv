@@ -44,6 +44,10 @@ public class MainActivity extends Activity {
     private final Handler providerHandler=new Handler(Looper.getMainLooper());
     private int providerPlayChecks=0;
     private boolean providerFullscreenRequested=false;
+    private boolean providerPointerMode=false;
+    private TextView providerCursor;
+    private float providerCursorX=0;
+    private float providerCursorY=0;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -184,6 +188,22 @@ public class MainActivity extends Activity {
         providerHint.setClickable(false);
         frame.addView(providerHint,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         providerNavigationMode=true; // Permite OK no botao Play e setas no player do site desde o primeiro frame.
+        providerPointerMode=false;
+        providerCursor=new TextView(this);
+        providerCursor.setText("➤");
+        providerCursor.setTextSize(35);
+        providerCursor.setTextColor(0xFF46CCB1);
+        providerCursor.setShadowLayer(5,2,2,Color.BLACK);
+        providerCursor.setFocusable(false);
+        providerCursor.setClickable(false);
+        providerCursor.setVisibility(View.GONE);
+        frame.addView(providerCursor,new FrameLayout.LayoutParams(85,90,Gravity.TOP|Gravity.LEFT));
+        p.post(() -> {
+            if (providerWeb!=p)return;
+            providerCursorX=p.getWidth()/2f;
+            providerCursorY=p.getHeight()/2f;
+            updateProviderCursor();
+        });
         providerPlayChecks=0;
         providerFullscreenRequested=false;
         updateProviderHint("Abrindo em tela cheia. Use o OK do controle para o Play caso o site exija.");
@@ -193,10 +213,12 @@ public class MainActivity extends Activity {
 
     private void updateProviderHint(String detail) {
         if (providerHint==null) return;
-        if (providerNavigationMode) {
-            providerHint.setText("NAVEGAR NO PLAYER: setas + OK | MENU: controle de video | VOLTAR: sair\\n"+detail);
+        if (providerPointerMode) {
+            providerHint.setText("MOUSE DA TCL: setas movem | OK clica no Play | MENU: modo video | VOLTAR: sair\n"+detail);
+        } else if (providerNavigationMode) {
+            providerHint.setText("NAVEGAR: setas e OK | MENU: mouse virtual | VOLTAR: sair\n"+detail);
         } else {
-            providerHint.setText("VIDEO: ESQ -10s | OK pausar/retomar | DIR +10s | CIMA/BAIXO volume | MENU: navegar\\n"+detail);
+            providerHint.setText("VIDEO: ESQ -10s | OK pausar | DIR +10s | CIMA/BAIXO volume | MENU: navegar\n"+detail);
         }
         providerHint.setVisibility(View.VISIBLE);
         final TextView current=providerHint;
@@ -204,6 +226,33 @@ public class MainActivity extends Activity {
         providerHandler.postDelayed(() -> {
             if (providerHint==current && current.getParent()!=null)current.setVisibility(View.GONE);
         }, 4500);
+    }
+
+    private void updateProviderCursor() {
+        if (providerCursor==null || providerWeb==null)return;
+        providerCursor.setVisibility(providerPointerMode?View.VISIBLE:View.GONE);
+        providerCursor.setTranslationX(providerCursorX-18);
+        providerCursor.setTranslationY(providerCursorY-20);
+    }
+
+    private void moveProviderCursor(int dx,int dy) {
+        if (providerWeb==null)return;
+        providerCursorX=Math.max(4,Math.min(providerWeb.getWidth()-5,providerCursorX+dx));
+        providerCursorY=Math.max(4,Math.min(providerWeb.getHeight()-5,providerCursorY+dy));
+        updateProviderCursor();
+    }
+
+    private void tapProviderCursor() {
+        if (providerWeb==null)return;
+        long t=SystemClock.uptimeMillis();
+        MotionEvent down=MotionEvent.obtain(t,t,MotionEvent.ACTION_DOWN,providerCursorX,providerCursorY,0);
+        MotionEvent up=MotionEvent.obtain(t,t+80,MotionEvent.ACTION_UP,providerCursorX,providerCursorY,0);
+        try {
+            providerWeb.dispatchTouchEvent(down);
+            providerWeb.dispatchTouchEvent(up);
+        } finally { down.recycle();up.recycle(); }
+        // O clique no player do site e acao real do controle; nao simula anuncio.
+        updateProviderHint("Toque enviado ao site. O proprio player decide se pode iniciar.");
     }
 
     private void tryAutoPlayProvider() {
@@ -220,6 +269,8 @@ public class MainActivity extends Activity {
             if (providerWeb!=active)return;
             if ("\"playing\"".equals(result)) {
                 providerNavigationMode=false; // Ao confirmar reproducao, habilita atalhos de transporte.
+                providerPointerMode=false;
+                updateProviderCursor();
                 updateProviderHint("Video HTML5 iniciado. Controle da TCL habilitado.");
                 if (!providerFullscreenRequested) {
                     providerFullscreenRequested=true;
@@ -264,6 +315,10 @@ public class MainActivity extends Activity {
             frame.removeView(providerHint);
             providerHint=null;
         }
+        if (providerCursor!=null) {
+            frame.removeView(providerCursor);
+            providerCursor=null;
+        }
         if (providerWeb!=null) {
             WebView old=providerWeb;
             providerWeb=null;
@@ -273,6 +328,7 @@ public class MainActivity extends Activity {
             old.destroy();
         }
         providerNavigationMode=true;
+        providerPointerMode=false;
         providerPlayChecks=0;
         providerFullscreenRequested=false;
         if (web!=null)web.requestFocus();
@@ -344,9 +400,27 @@ public class MainActivity extends Activity {
             int code=event.getKeyCode();
             if (code==KeyEvent.KEYCODE_BACK) { closeProviderInsideApp(); return true; }
             if (code==KeyEvent.KEYCODE_MENU) {
-                providerNavigationMode=!providerNavigationMode;
-                updateProviderHint(providerNavigationMode?"Navegue pelo player original usando o controle.":"Controle de video ativado.");
+                if (providerPointerMode) {
+                    providerPointerMode=false;
+                    providerNavigationMode=false;
+                } else if (providerNavigationMode) {
+                    providerPointerMode=true;
+                    providerNavigationMode=true;
+                } else {
+                    providerPointerMode=false;
+                    providerNavigationMode=true;
+                }
+                updateProviderCursor();
+                updateProviderHint(providerPointerMode?"Mova o cursor ate o Play e aperte OK.":providerNavigationMode?"Controle direto do site ativado.":"Atalhos de video HTML5 ativados.");
                 return true;
+            }
+            if (providerPointerMode) {
+                int step=Math.max(25,providerWeb.getWidth()/20);
+                if (code==KeyEvent.KEYCODE_DPAD_LEFT) { moveProviderCursor(-step,0);return true; }
+                if (code==KeyEvent.KEYCODE_DPAD_RIGHT) { moveProviderCursor(step,0);return true; }
+                if (code==KeyEvent.KEYCODE_DPAD_UP) { moveProviderCursor(0,-step);return true; }
+                if (code==KeyEvent.KEYCODE_DPAD_DOWN) { moveProviderCursor(0,step);return true; }
+                if (code==KeyEvent.KEYCODE_DPAD_CENTER || code==KeyEvent.KEYCODE_ENTER) { tapProviderCursor();return true; }
             }
             if (!providerNavigationMode) {
                 if (code==KeyEvent.KEYCODE_DPAD_LEFT) { providerVideoCommand("back"); return true; }
