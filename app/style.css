@@ -548,3 +548,25 @@ body.virtual-mouse-mode #playerDiagBadge{opacity:.25}
 .profile-editor-actions .btn:first-child{background:var(--accent-soft);color:var(--accent-hi);border:2px solid var(--accent);font-weight:700}
 .profile-editor-actions .btn:first-child.focused{background:var(--accent);color:var(--accent-ink)}
 @media(max-width:950px){.source-title-list,.source-results-list{grid-template-columns:1fr}.source-list-heading h2{font-size:1.5rem}.source-list-toolbar .btn{font-size:.89rem}.source-list-pager .btn{min-width:6.5rem}}
+
+/* 1.6.6 profile TV accessibility: photo and CTA remain legible across TV scaling. */
+.profile-edit-preview{width:min(53rem,100%);padding:1rem 1.4rem;gap:1.6rem}
+.profile-preview-photo{width:clamp(9rem,21vh,13rem);height:clamp(9rem,21vh,13rem);border:3px solid var(--accent);border-radius:1.1rem}
+.profile-preview-photo:focus-visible,.profile-preview-photo.focused{outline:4px solid var(--accent-hi);outline-offset:4px}
+.profile-preview-photo .profile-photo-overlay{min-height:3rem;padding:.35rem .2rem;gap:.35rem;font-size:1rem;line-height:1.1;background:rgba(5,5,8,.94)}
+.profile-photo-overlay .ic{width:1.25rem;height:1.25rem;flex-shrink:0}
+.profile-preview-copy .profile-preview-label{font-size:1.08rem}
+.profile-preview-copy span{display:block;font-size:1.04rem;line-height:1.35}
+.profile-editor-actions .btn:first-child{font-size:1.15rem;min-height:3rem}
+@media(max-height:600px){
+ .profile-edit-preview{padding:.6rem 1rem}
+ .profile-preview-photo{width:7.8rem;height:7.8rem}
+ .profile-preview-photo .profile-photo-overlay{min-height:2.4rem;font-size:.9rem}
+ .profile-name-editor{gap:.55rem}
+}
+@media(max-width:680px){
+ .profile-edit-preview{gap:.7rem;padding:.7rem;width:100%}
+ .profile-preview-photo{width:7.8rem;height:7.8rem}
+ .profile-preview-copy h3{font-size:1.45rem}
+ .profile-preview-copy span{font-size:.95rem}
+}
