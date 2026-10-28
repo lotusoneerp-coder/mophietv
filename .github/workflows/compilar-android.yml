@@ -97,19 +97,20 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
 
-      - name: Impedir release automatico com chave temporaria
+      - name: Avisar quando a atualizacao online ainda nao pode ser publicada
+        if: env.MOPHIE_RELEASE_SIGNED != '1'
         run: |
-          if [ "${MOPHIE_RELEASE_SIGNED:-0}" != "1" ]; then
-            echo "::error::Atualizacao OTA INDISPONIVEL: configure o JKS original em MOPHIE_KEYSTORE_B64 e MOPHIE_KEYSTORE_PASSWORD no GitHub."
-            exit 1
-          fi
+          echo "::warning::APK de teste compilado. OTA nao publicada: falta assinatura original."
+          echo "Build do APK concluido. Publicacao online ignorada porque a assinatura original nao foi fornecida." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Gerar manifesto verificado para Hostinger
+        if: env.MOPHIE_RELEASE_SIGNED == '1'
         run: |
           python tools/gerar_latest.py dist/MophieTV_TCL_v1.6.9_ASSINADO.apk 1.6.9 38
           python -m py_compile tools/publicar_hostinger.py
 
       - name: Publicar APK e depois latest.json na Hostinger (FTPS)
+        if: env.MOPHIE_RELEASE_SIGNED == '1'
         env:
           MOPHIE_FTPS_HOST: ${{ secrets.MOPHIE_FTPS_HOST }}
           MOPHIE_FTPS_USER: ${{ secrets.MOPHIE_FTPS_USER }}
