@@ -21,6 +21,7 @@
   M117:'Mouse virtual: iframe de outro site exige clique nativo; JavaScript não alcança os botões internos.',
   M118:'Falha ao acionar a ponte de toque Android (quando disponível).',
   M119:'O vídeo direto não iniciou automaticamente na WebView.',
+  M120:'O próprio provedor bloqueou o player fora da página oficial.',
   D201:'Vídeo MP4 direto de teste avançou.',
   D202:'Vídeo MP4 direto de teste falhou.',
   D211:'Vídeo MP4 dentro de iframe local avançou.',
