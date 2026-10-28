@@ -303,8 +303,14 @@ function refreshSourceSearch(){
  const query=$('srcQueryText'),count=$('srcResultCount'),grid=$('srcResultGrid');
  if(query)query.textContent=SRC.search||'Digite usando o controle';
  if(count)count.textContent=matches.length+' resultado(s)';
- grid.innerHTML=matches.map(it=>'<div class="source-title-row"><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('');
+ const signature=matches.map(it=>it.id||it.url||it.name).join('|');
+ // Sincronizar mais titulos nao deve apagar e reconstruir resultados identicos.
+ if(SRC.searchResultSignature!==signature){
+  grid.innerHTML=matches.map(it=>'<div class="source-title-row"><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('');
+  SRC.searchResultSignature=signature;
+ }
  if(S.zones.srcSearchKeys)S.zones.srcSearchKeys.down=matches.length?'srcSearchResults':null;
+ if(S.zones.srcSearchResults)S.zones.srcSearchResults.idx=SRC.searchResultIdx;
  if(S.zone==='srcSearchResults'&&!matches.length)activate('srcSearchKeys');
  else if(S.zone==='srcSearchResults')applyFocus();
 }
@@ -313,6 +319,7 @@ function renderSourceSearch(){
  setTitle('Buscar em '+FL.provider,'Pesquisa instantânea · catálogo salvo nesta TV');
  SRC.searchMatches=sourceSearchMatches();
  const matches=SRC.searchMatches;
+ SRC.searchResultSignature=matches.map(it=>it.id||it.url||it.name).join('|');
  $('view').innerHTML='<div class="source-search-layout"><div class="source-search-side"><h2>Buscar títulos</h2><div class="source-search-query" id="srcQueryText">'+esc(SRC.search||'Digite usando o controle')+'</div><div class="source-search-keys" id="srcSearchKeys">'+sourceSearchLetters.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'</div><p class="src-note">OK seleciona a letra. ↓ abre os resultados.</p></div><div class="source-search-results" id="srcSearchResults"><h2 id="srcResultCount">'+matches.length+' resultado(s)</h2><div class="source-search-grid source-results-list" id="srcResultGrid">'+matches.map(it=>'<div class="source-title-row"><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('')+'</div></div></div>';
  S.zones.srcSearchKeys={items:()=>$('srcSearchKeys').children,cols:6,idx:Math.min(SRC.searchIdx,sourceSearchLetters.length-1),down:matches.length?'srcSearchResults':null,left:'side',back:()=>go('sourceCatalog'),change:i=>{SRC.searchIdx=i},ok:i=>{
   if(i<36)SRC.search=(SRC.search+sourceSearchLetters[i]).slice(0,55);
