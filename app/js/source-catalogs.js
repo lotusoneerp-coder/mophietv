@@ -13,7 +13,7 @@
  };
  const CACHE_KEY='mophietv_metadata_catalog_8',MAX_AGE=6*3600000,MAX_ITEMS=100000,MAX_PAGES=5;
  const all=new Map(),ongoing=new Map(),deepTasks=new Map(),moreTasks=new Map();
- const DB_NAME='mophie-catalog-cache',STORE='catalogs';
+ const DB_NAME='mophie-catalog-cache',STORE='catalogs';let warmTask=null;
  function openDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window))return reject(Error('IndexedDB indisponível'));
   const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};
   r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
@@ -188,6 +188,22 @@
    return all.get(name)||null;
   })().finally(()=>deepTasks.delete(name));deepTasks.set(name,task);return task;
  }
+ // Usa IndexedDB integral antes de iniciar a coleta; nao depende de clique manual.
+ function warm(name){
+  if(name!=='RedeCanais')return Promise.resolve(null);
+  if(warmTask)return warmTask;
+  warmTask=(async()=>{
+   const cached=await readDB(name),current=all.get(name);
+   if(cached&&cached.items.length&&(!current||cached.items.length>current.items.length)){
+    all.set(name,cached);
+    try{window.dispatchEvent(new CustomEvent('mophie:catalog-updated',{detail:{name,count:cached.items.length,pages:cached.pages||0}}))}catch(_){}
+   }
+   const result=await load(name,false);
+   if(navigator.onLine!==false)scheduleSync(name);
+   return result;
+  })().finally(()=>{warmTask=null});
+  return warmTask;
+ }
  function get(name){return all.get(name)||readCache(name)||null}
  function homepage(name){return CONFIG[name]?.base+'/'||''}
  // Restaurar o catálogo integral do IndexedDB ao iniciar: localStorage contém só uma amostra.
@@ -198,5 +214,5 @@
    try{window.dispatchEvent(new CustomEvent('mophie:catalog-updated',{detail:{name:'RedeCanais',count:data.items.length,pages:data.pages||0}}))}catch(e){}
    if(navigator.onLine!==false)scheduleSync('RedeCanais');
   }).catch(()=>{});
-  window.MophieSources={load,loadMore,syncAll,get,homepage,providers:Object.keys(CONFIG),validURL,metaImage,posterSrc};
+  window.MophieSources={load,loadMore,syncAll,warm,get,homepage,providers:Object.keys(CONFIG),validURL,metaImage,posterSrc};
 })();

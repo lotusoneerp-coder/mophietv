@@ -3,14 +3,14 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.8';
+const VERSION='1.6.9';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
 const KEY='mophietv_tcl_1';
 const HOLD_BACK_MS=3000;
 const PROFILE_FIELDS=['vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'];
-const PROVIDERS=[{name:'Pluto TV',desc:'Filmes e séries · catálogo oficial',available:true},{name:'RedeCanais',desc:'Lista de títulos · reprodução conforme disponibilidade',available:true,metadataOnly:true}];
+const PROVIDERS=[{name:'Pluto TV',desc:'Filmes e séries · catálogo oficial',available:true},{name:'RedeCanais',desc:'Lista de títulos · reprodução conforme disponibilidade',available:true,metadataOnly:true},{name:'Plex',desc:'Filmes HD gratuitos · catálogo oficial com anúncios',available:true,officialUrl:'https://watch.plex.tv/pt-BR'}];
 const AVATAR_FILES=Array.from({length:107},(_,i)=>'avatars/'+(i+1)+'.png');
 const store=(()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){return {}}})();
 ['favorites','vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'].forEach(k=>{if(!store[k]||typeof store[k]!=='object'||Array.isArray(store[k]))store[k]={}});
@@ -209,14 +209,14 @@ function renderAvatarPicker(){
  return 'avatars'
 }
 function renderProviders(){if(!currentProfileId){go('mophieflix');return null}const p=store.mophieProfiles.find(x=>x.id===currentProfileId);setTitle('MophieFlix','Perfil: '+(p?p.name:'')+' · Escolha um catálogo');
- $('view').innerHTML='<div class="provider-page"><div class="flix-subtitle">Escolha onde assistir</div><div class="provider-grid" id="providerGrid">'+PROVIDERS.map(x=>'<div class="provider-card"><div class="provider-symbol">'+ic(x.available?'play':'film')+'</div><b>'+esc(x.name)+'</b><small>'+esc(x.desc)+'</small>'+(x.metadataOnly?'<span class="provider-status">Catálogo público · site externo</span>':x.available?'<span class="provider-status">Catálogo integrado</span>':'<span class="provider-status pending">Indisponível</span>')+'</div>').join('')+'</div><div class="actions" id="providerActions"><div class="btn">'+ic('users')+'Trocar perfil</div></div></div>';
- S.zones.providers={items:()=>$('providerGrid').children,cols:3,idx:FL.providerIdx,left:'side',down:'providerActions',back:()=>go('mophieflix'),change:i=>{FL.providerIdx=i},ok:i=>{const p=PROVIDERS[i];FL.provider=p.name;go(p.metadataOnly?'sourceCatalog':p.available?'flixhome':'providerUnavailable')}};
+ $('view').innerHTML='<div class="provider-page"><div class="flix-subtitle">Escolha onde assistir</div><div class="provider-grid" id="providerGrid">'+PROVIDERS.map(x=>'<div class="provider-card"><div class="provider-symbol">'+ic(x.available?'play':'film')+'</div><b>'+esc(x.name)+'</b><small>'+esc(x.desc)+'</small>'+(x.metadataOnly?'<span class="provider-status">Catálogo público · player do provedor</span>':x.officialUrl?'<span class="provider-status">Abrir catálogo oficial na MophieTV</span>':x.available?'<span class="provider-status">Catálogo integrado</span>':'<span class="provider-status pending">Indisponível</span>')+'</div>').join('')+'</div><div class="actions" id="providerActions"><div class="btn">'+ic('users')+'Trocar perfil</div></div></div>';
+ S.zones.providers={items:()=>$('providerGrid').children,cols:3,idx:FL.providerIdx,left:'side',down:'providerActions',back:()=>go('mophieflix'),change:i=>{FL.providerIdx=i},ok:i=>{const p=PROVIDERS[i];FL.provider=p.name;if(p.officialUrl){window.location.href='mophie-original://open?url='+encodeURIComponent(p.officialUrl);return}go(p.metadataOnly?'sourceCatalog':p.available?'flixhome':'providerUnavailable')}};
  S.zones.providerActions={items:()=>$('providerActions').children,cols:'row',up:'providers',left:'side',back:()=>go('mophieflix'),ok:()=>go('mophieflix')};return 'providers'}
 /* Catálogos públicos: prévia de metadados. Não direcionar para sites externos nem fingir reprodução integrada. */
 function renderSourceCatalog(){if(!currentProfileId){go('mophieflix');return null}
  const name=FL.provider;setTitle('MophieFlix',name+' · filmes e séries · catálogo de consulta');
  const data=SOURCES&&SOURCES.get(name);
- if(!data){$('view').innerHTML='<div class="empty">'+ic('refresh')+'Consultando títulos públicos de '+esc(name)+'…<p>O carregamento depende da disponibilidade e das permissões do site. Não há redirecionamento externo.</p></div>';
+ if(!data){$('view').innerHTML='<div class="empty">'+ic('refresh')+'Consultando títulos públicos de '+esc(name)+'…<p>Os títulos salvos são restaurados automaticamente; a sincronização continua em segundo plano.</p></div>';
   if(!SRC.loading){SRC.loading=name;SOURCES.load(name).then(()=>{SRC.error='';if(S.section==='sourceCatalog'&&FL.provider===name)go('sourceCatalog')}).catch(e=>{SRC.error=e.message||'Falha ao consultar o site';if(S.section==='sourceCatalog'&&FL.provider===name)go('sourceCatalog')}).finally(()=>{SRC.loading=null})}
   if(SRC.error){$('view').innerHTML='<div class="empty">'+ic('wifiOff')+'Não foi possível consultar '+esc(name)+'<p>'+esc(SRC.error)+' — algumas fontes não permitem acesso pela WebView.</p><div class="actions" id="srcErrActions"><div class="btn">'+ic('refresh')+'Tentar novamente</div><div class="btn">'+ic('chevronRight')+'Voltar</div></div></div>';
    S.zones.srcErr={items:()=>$('srcErrActions').children,cols:'row',idx:0,ok:i=>{if(i){SRC.error='';go('providers')}else{SRC.error='';SRC.loading=null;SOURCES.load(name,true).then(()=>{if(S.section==='sourceCatalog')go('sourceCatalog')}).catch(e=>{SRC.error=e.message;go('sourceCatalog')})}},back:()=>go('providers')};return 'srcErr'}return null}
@@ -267,7 +267,7 @@ function renderRedeList(data){
  '<div class="source-list-toolbar" id="srcActions"><div class="btn">'+ic('search')+'Buscar</div>'+
  tabs.map(([k,v])=>'<div class="btn'+(kind===k?' chosen':'')+'">'+esc(v)+'</div>').join('')+
  '<div class="btn">'+ic('refresh')+'Sincronizar</div><div class="btn">'+ic('users')+'Fontes</div></div>'+
- '<div class="source-list-summary">'+filtered.length.toLocaleString('pt-BR')+' títulos · '+(data.pages||0)+' páginas consultadas'+((data.states||[]).some(x=>x.next)?' · atualização em segundo plano':'')+'</div>'+
+ '<div class="source-list-summary" id="sourceCatalogSummary">'+filtered.length.toLocaleString('pt-BR')+' títulos · '+(data.pages||0)+' páginas consultadas'+((data.states||[]).some(x=>x.next)?' · atualização em segundo plano':'')+'</div>'+
  '<div class="source-title-scroll" id="sourceScroll0"><div class="source-title-list" id="sourceRail0">'+
  shown.map((it,i)=>'<div class="source-title-row"><span class="source-title-index">'+String(start+i+1).padStart(3,'0')+'</span><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('')+
  '</div></div><div class="source-list-pager" id="sourcePages"><div class="btn">'+ic('chevronLeft')+'Anterior</div><div class="btn">Página '+(SRC.listPage+1)+' / '+pages+'</div><div class="btn">Próxima'+ic('chevronRight')+'</div></div>'+
@@ -283,17 +283,46 @@ function renderRedeList(data){
  return shown.length?'source0':'srcActions';
 }
 
-/* Busca local por título, pelo teclado virtual do controle remoto. */
-function renderSourceSearch(){const data=SOURCES&&SOURCES.get(FL.provider);
- if(!data){go('sourceCatalog');return null}
- setTitle('Buscar em '+FL.provider,'Busque pelo nome · apenas títulos já carregados');
- const q=normal(SRC.search);const matches=(data.items||[]).filter(it=>!q||normal(it.name).includes(q)).slice(0,120);
- const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('').concat(['Espaço','Apagar']);
- $('view').innerHTML='<div class="source-search-layout"><div class="source-search-side"><h2>Buscar títulos</h2><div class="source-search-query">'+esc(SRC.search||'Digite usando o controle')+'</div><div class="source-search-keys" id="srcSearchKeys">'+letters.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'</div><p class="src-note">OK seleciona a letra. ↓ abre os resultados.</p></div><div class="source-search-results" id="srcSearchResults"><h2>'+matches.length+' resultado(s)</h2><div class="source-search-grid source-results-list" id="srcResultGrid">'+matches.map(it=>'<div class="source-title-row"><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('')+'</div></div></div>';
- S.zones.srcSearchKeys={items:()=>$('srcSearchKeys').children,cols:6,idx:Math.min(SRC.searchIdx,letters.length-1),down:matches.length?'srcSearchResults':null,left:'side',back:()=>go('sourceCatalog'),change:i=>{SRC.searchIdx=i},ok:i=>{if(i<36){SRC.search+=letters[i]}else if(i===36){SRC.search+=' '}else SRC.search=SRC.search.slice(0,-1);SRC.searchResultIdx=0;go('sourceSearch','srcSearchKeys')}};
- S.zones.srcSearchResults={items:()=>$('srcResultGrid').children,cols:2,idx:Math.min(SRC.searchResultIdx,Math.max(0,matches.length-1)),up:'srcSearchKeys',left:'srcSearchKeys',scroll:()=>$('srcSearchResults'),back:()=>go('sourceCatalog'),change:i=>{SRC.searchResultIdx=i},ok:i=>{SRC.item=matches[i];SRC.playerError='';go('sourceDetails')}};
- return matches.length&&SRC.searchResultIdx?'srcSearchResults':'srcSearchKeys'}
-
+/* Busca incremental: troca somente resultados e query, nunca a tela toda. */
+const sourceSearchLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('').concat(['Espaço','Apagar']);
+const sourceSearchIndex=new WeakMap();
+function sourceSearchMatches(){
+ const data=SOURCES&&SOURCES.get(FL.provider),q=normal(SRC.search),matches=[];
+ if(!data||!Array.isArray(data.items))return matches;
+ for(const it of data.items){
+  let key=sourceSearchIndex.get(it);
+  if(key===undefined){key=normal(it.name);sourceSearchIndex.set(it,key)}
+  if(!q||key.includes(q)){matches.push(it);if(matches.length>=120)break}
+ }
+ return matches;
+}
+function refreshSourceSearch(){
+ if(S.section!=='sourceSearch'||!$('srcResultGrid'))return;
+ const matches=sourceSearchMatches();SRC.searchMatches=matches;
+ SRC.searchResultIdx=Math.min(SRC.searchResultIdx||0,Math.max(0,matches.length-1));
+ const query=$('srcQueryText'),count=$('srcResultCount'),grid=$('srcResultGrid');
+ if(query)query.textContent=SRC.search||'Digite usando o controle';
+ if(count)count.textContent=matches.length+' resultado(s)';
+ grid.innerHTML=matches.map(it=>'<div class="source-title-row"><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('');
+ if(S.zones.srcSearchKeys)S.zones.srcSearchKeys.down=matches.length?'srcSearchResults':null;
+ if(S.zone==='srcSearchResults'&&!matches.length)activate('srcSearchKeys');
+ else if(S.zone==='srcSearchResults')applyFocus();
+}
+function renderSourceSearch(){
+ if(!SOURCES||!SOURCES.get(FL.provider)){go('sourceCatalog');return null}
+ setTitle('Buscar em '+FL.provider,'Pesquisa instantânea · catálogo salvo nesta TV');
+ SRC.searchMatches=sourceSearchMatches();
+ const matches=SRC.searchMatches;
+ $('view').innerHTML='<div class="source-search-layout"><div class="source-search-side"><h2>Buscar títulos</h2><div class="source-search-query" id="srcQueryText">'+esc(SRC.search||'Digite usando o controle')+'</div><div class="source-search-keys" id="srcSearchKeys">'+sourceSearchLetters.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'</div><p class="src-note">OK seleciona a letra. ↓ abre os resultados.</p></div><div class="source-search-results" id="srcSearchResults"><h2 id="srcResultCount">'+matches.length+' resultado(s)</h2><div class="source-search-grid source-results-list" id="srcResultGrid">'+matches.map(it=>'<div class="source-title-row"><span class="source-title-name">'+esc(it.name)+'</span><span class="source-title-chevron">›</span></div>').join('')+'</div></div></div>';
+ S.zones.srcSearchKeys={items:()=>$('srcSearchKeys').children,cols:6,idx:Math.min(SRC.searchIdx,sourceSearchLetters.length-1),down:matches.length?'srcSearchResults':null,left:'side',back:()=>go('sourceCatalog'),change:i=>{SRC.searchIdx=i},ok:i=>{
+  if(i<36)SRC.search=(SRC.search+sourceSearchLetters[i]).slice(0,55);
+  else if(i===36)SRC.search=(SRC.search+' ').slice(0,55);
+  else SRC.search=SRC.search.slice(0,-1);
+  SRC.searchResultIdx=0;refreshSourceSearch()}};
+ S.zones.srcSearchResults={items:()=>$('srcResultGrid').children,cols:2,idx:Math.min(SRC.searchResultIdx,Math.max(0,matches.length-1)),up:'srcSearchKeys',left:'srcSearchKeys',scroll:()=>$('srcSearchResults'),back:()=>go('sourceCatalog'),change:i=>{SRC.searchResultIdx=i},ok:i=>{
+  const it=(SRC.searchMatches||[])[i];if(!it)return;SRC.item=it;SRC.playerError='';go('sourceDetails')}};
+ return 'srcSearchKeys';
+}
 
 /* Diagnóstico Mophie: códigos curtos facilitam localizar a falha na TCL. */
 function reportSource(code,detail,uri){
@@ -1015,7 +1044,7 @@ function onKey(ev){const key=ev.key;
   const ch=key===' '?' ':key.length===1&&/[a-z0-9À-ÿ]/i.test(key)?key.toUpperCase():null;
   if(ch!==null||key==='Backspace'){
    if(ev.preventDefault)ev.preventDefault();if(ev.stopPropagation)ev.stopPropagation();
-   if(S.section==='sourceSearch'){SRC.search=key==='Backspace'?SRC.search.slice(0,-1):(SRC.search+ch).slice(0,55);SRC.searchResultIdx=0;go('sourceSearch','srcSearchKeys');return}
+   if(S.section==='sourceSearch'){SRC.search=key==='Backspace'?SRC.search.slice(0,-1):(SRC.search+ch).slice(0,55);SRC.searchResultIdx=0;refreshSourceSearch();return}
    if(S.section==='profileEdit'){FL.editName=key==='Backspace'?FL.editName.slice(0,-1):(FL.editName+ch).slice(0,18);const t=$('editTitle');if(t)t.textContent=FL.editName||'Digite o nome';return}
    const st=V[S.section==='movies'?'movie':'series'];st.q=key==='Backspace'?st.q.slice(0,-1):(st.q+ch).slice(0,40);st.res=0;
    renderSearch(S.section==='movies'?'movie':'series');activate('kb',st.kb);return;
@@ -1044,12 +1073,21 @@ window.mophieBack=()=>remoteBack();window.mophieInfo=()=>{if(window.MophieUpdate
 // Chamado pela Activity.dispatchKeyEvent antes que a WebView consuma os eventos do controle da Android TV.
 window.mophieRemoteKey=(key)=>onKey({key,preventDefault(){},stopPropagation(){}});
 window.addEventListener('resize',()=>{if(S.zone)applyFocus()});
- let sourceRepaintTimer=null;
+ let sourceCountTimer=null;
  window.addEventListener('mophie:catalog-updated',ev=>{
   if(!ev.detail||ev.detail.name!=='RedeCanais'||S.playing)return;
-  if(S.section!=='sourceSearch'&&S.section!=='sourceCatalog')return;
-  clearTimeout(sourceRepaintTimer);
-  sourceRepaintTimer=setTimeout(()=>{if(!S.playing&&(S.section==='sourceSearch'||S.section==='sourceCatalog'))go(S.section,S.zone)},2200);
+  clearTimeout(sourceCountTimer);
+  sourceCountTimer=setTimeout(()=>{
+   if(S.playing)return;
+   if(S.section==='sourceSearch'){refreshSourceSearch();return}
+   if(S.section==='sourceCatalog'&&FL.provider==='RedeCanais'){
+    const d=SOURCES.get('RedeCanais');if(!d)return;
+    const kind=SRC.listKind||'all',count=kind==='all'?d.items.length:d.items.filter(x=>x.type===kind).length;
+    setTitle('RedeCanais','Lista de títulos · '+d.items.length.toLocaleString('pt-BR')+' registrados · sem capas');
+    const summary=$('sourceCatalogSummary');
+    if(summary)summary.textContent=count.toLocaleString('pt-BR')+' títulos · '+(d.pages||0)+' páginas consultadas'+((d.states||[]).some(x=>x.next)?' · sincronizando automaticamente':'');
+   }
+  },450);
  });
 function updateClock(){$('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const on=navigator.onLine;$('net').className=on?'':'off';$('net').innerHTML=on?ic('wifi'):ic('wifiOff')+'Sem conexão'}
 window.addEventListener('online',updateClock);window.addEventListener('offline',updateClock);
@@ -1064,6 +1102,7 @@ function boot(){setInterval(()=>{refreshProgramTiles();if(S.section==='live')fet
  // Checagem de atualização já ocorreu antes de iniciar a TV (startGate).
  if(Date.now()-(store.updated||0)>6*3600000)setTimeout(()=>{if(navigator.onLine)refreshAll()},2500);
  // Pré-carrega o catálogo de filmes/séries em segundo plano, sem disputar a reprodução.
+ setTimeout(()=>{if(SOURCES&&navigator.onLine!==false)SOURCES.warm('RedeCanais').catch(()=>{})},2100);
  setTimeout(()=>{if(navigator.onLine&&!CAT.loaded()&&!S.playing)CAT.load().catch(()=>{})},18000)}
 window.__mophie={S,L,V,store,go,version:VERSION,mouse:window.MophieVirtualMouse};
 if(window.MophieUpdater&&typeof MophieUpdater.startGate==='function')MophieUpdater.startGate(boot);else {console.error('Verificador obrigatorio ausente: aplicativo bloqueado');document.getElementById('mophie-update-modal').hidden=false;document.getElementById('mophie-update-status').textContent='Verificador indisponivel';document.getElementById('mophie-update-caption').textContent='Reinstale a Mophie TV oficial.';}})();

@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
                 android.net.Uri target=android.net.Uri.parse(requested);
                 String host=target.getHost();
                 if ("https".equals(target.getScheme()) && ("redecanais.by".equalsIgnoreCase(host) ||
-                    "www.redecanais.by".equalsIgnoreCase(host))) {
+                    "www.redecanais.by".equalsIgnoreCase(host) || "watch.plex.tv".equalsIgnoreCase(host))) {
                     openProviderInsideApp(target);
                 } else Toast.makeText(this, "Página não autorizada", Toast.LENGTH_LONG).show();
             } catch (Exception e) {
@@ -127,7 +127,7 @@ public class MainActivity extends Activity {
     private boolean isProviderUrl(android.net.Uri u) {
         if (u==null || !"https".equalsIgnoreCase(u.getScheme())) return false;
         String host=u.getHost();
-        return "redecanais.by".equalsIgnoreCase(host) || "www.redecanais.by".equalsIgnoreCase(host);
+        return "redecanais.by".equalsIgnoreCase(host) || "www.redecanais.by".equalsIgnoreCase(host) || "watch.plex.tv".equalsIgnoreCase(host);
     }
 
     private void openProviderInsideApp(android.net.Uri target) {
@@ -206,7 +206,7 @@ public class MainActivity extends Activity {
         });
         providerPlayChecks=0;
         providerFullscreenRequested=false;
-        updateProviderHint("Abrindo em tela cheia. Use o OK do controle para o Play caso o site exija.");
+        updateProviderHint("Player em tela cheia na MophieTV. Se o autoplay nao iniciar, use MENU e OK no Play.");
         p.loadUrl(target.toString());
         p.requestFocus();
     }

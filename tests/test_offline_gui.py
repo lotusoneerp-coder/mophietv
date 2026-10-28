@@ -12,9 +12,9 @@ async def check_updater(browser, width, height):
     <div id="mophie-update-modal" hidden><h2 id="mophie-update-status"></h2>
     <p id="mophie-update-caption"></p><div id="mophie-update-actions"></div></div>
     </body></html>''')
-    await page.evaluate("""() => { window.__updateVersionCode=37;window.fetch = async () => ({ok:true,
-        json:async()=>({appId:'com.mophie.tv',channel:'tcl-completa',version:'1.6.8',versionCode:window.__updateVersionCode,
-        apk:'MophieTV_TCL_v1.6.8_NATIVE_ATUALIZADOR.apk',sha256:'a'.repeat(64),sizeBytes:20000000,notes:[]})});} """)
+    await page.evaluate("""() => { window.__updateVersionCode=38;window.fetch = async () => ({ok:true,
+        json:async()=>({appId:'com.mophie.tv',channel:'tcl-completa',version:'1.6.9',versionCode:window.__updateVersionCode,
+        apk:'MophieTV_TCL_v1.6.9_NATIVE_ATUALIZADOR.apk',sha256:'a'.repeat(64),sizeBytes:20000000,notes:[]})});} """)
     await page.add_script_tag(path=str(UPD))
     await page.evaluate("window.MophieUpdater.startGate(()=>{window.__booted=true})")
     await page.wait_for_function('window.__booted===true')
@@ -27,8 +27,8 @@ async def check_updater(browser, width, height):
     <p id="mophie-update-caption"></p><div id="mophie-update-actions"></div></div>
     </body></html>''')
     await page.evaluate("""() => { window.fetch = async () => ({ok:true,
-        json:async()=>({appId:'com.mophie.tv',channel:'tcl-completa',version:'1.6.9',versionCode:38,
-        apk:'MophieTV_TCL_v1.6.9_NOVA_VERSAO.apk',sha256:'a'.repeat(64),sizeBytes:20000000,notes:[]})});} """)
+        json:async()=>({appId:'com.mophie.tv',channel:'tcl-completa',version:'1.6.10',versionCode:39,
+        apk:'MophieTV_TCL_v1.6.10_NOVA_VERSAO.apk',sha256:'a'.repeat(64),sizeBytes:20000000,notes:[]})});} """)
     await page.add_script_tag(path=str(UPD))
     await page.evaluate("window.MophieUpdater.startGate(()=>{window.__booted=true})")
     await page.wait_for_function("window.MophieUpdater.getState()==='required'")
