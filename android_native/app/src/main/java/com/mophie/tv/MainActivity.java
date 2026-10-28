@@ -9,6 +9,8 @@ import android.widget.TextView;
 import android.webkit.CookieManager;
 import android.widget.Toast;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -38,7 +40,10 @@ public class MainActivity extends Activity {
     private UpdateInstaller updates;
     private WebView providerWeb;
     private TextView providerHint;
-    private boolean providerNavigationMode=false;
+    private boolean providerNavigationMode=true;
+    private final Handler providerHandler=new Handler(Looper.getMainLooper());
+    private int providerPlayChecks=0;
+    private boolean providerFullscreenRequested=false;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -150,7 +155,12 @@ public class MainActivity extends Activity {
                 return !isProviderUrl(android.net.Uri.parse(url));
             }
             @Override public void onPageFinished(WebView view,String url) {
-                if (providerWeb==view) tryAutoPlayProvider();
+                if (providerWeb!=view) return;
+                providerPlayChecks=0;
+                providerFullscreenRequested=false;
+                // A maioria dos sites monta o player depois do evento onPageFinished.
+                // Tentativas limitadas; nao clicam em anuncios nem em botoes da pagina.
+                tryAutoPlayProvider();
             }
         });
         p.setWebChromeClient(new WebChromeClient() {
@@ -173,8 +183,10 @@ public class MainActivity extends Activity {
         providerHint.setFocusable(false);
         providerHint.setClickable(false);
         frame.addView(providerHint,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
-        providerNavigationMode=false;
-        updateProviderHint("Carregando o player oficial dentro da MophieTV...");
+        providerNavigationMode=true; // Permite OK no botao Play e setas no player do site desde o primeiro frame.
+        providerPlayChecks=0;
+        providerFullscreenRequested=false;
+        updateProviderHint("Abrindo em tela cheia. Use o OK do controle para o Play caso o site exija.");
         p.loadUrl(target.toString());
         p.requestFocus();
     }
@@ -182,35 +194,68 @@ public class MainActivity extends Activity {
     private void updateProviderHint(String detail) {
         if (providerHint==null) return;
         if (providerNavigationMode) {
-            providerHint.setText("NAVEGACAO: setas e OK controlam o site | MENU: modo video | VOLTAR: MophieTV\n"+detail);
+            providerHint.setText("NAVEGAR NO PLAYER: setas + OK | MENU: controle de video | VOLTAR: sair\\n"+detail);
         } else {
-            providerHint.setText("VIDEO: ◀ -10s | OK pausar/retomar | +10s ▶ | ▲▼ volume | MENU: navegar no site | VOLTAR: MophieTV\n"+detail);
+            providerHint.setText("VIDEO: ESQ -10s | OK pausar/retomar | DIR +10s | CIMA/BAIXO volume | MENU: navegar\\n"+detail);
         }
+        providerHint.setVisibility(View.VISIBLE);
+        final TextView current=providerHint;
+        // Dica desaparece sozinha; nao deve cobrir o botao Play nem o filme.
+        providerHandler.postDelayed(() -> {
+            if (providerHint==current && current.getParent()!=null)current.setVisibility(View.GONE);
+        }, 4500);
     }
 
     private void tryAutoPlayProvider() {
-        if (providerWeb==null) return;
-        // Somente HTML5 acessivel no documento principal: iframes cross-origin permanecem isolados.
-        providerWeb.evaluateJavascript("(function(){try{var v=document.querySelector('video');if(!v)return false;v.autoplay=true;var p=v.play();if(p&&p.catch)p.catch(function(){});return true}catch(e){return false}})()", result -> {
-            if (providerWeb==null) return;
-            if ("true".equals(result)) updateProviderHint("Autoplay solicitado ao video HTML5.");
-            else updateProviderHint("Player pronto. Se estiver dentro de iframe, use MENU e os controles publicados pelo site.");
+        final WebView active=providerWeb;
+        if (active==null || providerPlayChecks>=8) return;
+        providerPlayChecks++;
+        // HTML5 no documento do provedor: tentar play() e fullscreen oficial.
+        // O navegador mantem isolamento de iframes de outros dominios.
+        active.evaluateJavascript("(function(){try{var v=document.querySelector('video');"+
+            "if(!v)return 'iframe';"+
+            "v.autoplay=true;v.playsInline=true;"+
+            "if(v.paused){var p=v.play();if(p&&p.catch)p.catch(function(){});return 'attempted'}"+
+            "return 'playing'}catch(e){return 'error'}})()", result -> {
+            if (providerWeb!=active)return;
+            if ("\"playing\"".equals(result)) {
+                providerNavigationMode=false; // Ao confirmar reproducao, habilita atalhos de transporte.
+                updateProviderHint("Video HTML5 iniciado. Controle da TCL habilitado.");
+                if (!providerFullscreenRequested) {
+                    providerFullscreenRequested=true;
+                    active.evaluateJavascript("(function(){var v=document.querySelector('video');"+
+                        "if(!v||document.fullscreenElement||!v.requestFullscreen)return false;"+
+                        "try{var p=v.requestFullscreen();if(p&&p.catch)p.catch(function(){});return true}"+
+                        "catch(e){return false}})()",null);
+                }
+                return;
+            }
+            // A chamada play() nao garante reproducao: conferir novamente apos carregamento.
+            if (providerPlayChecks<8) providerHandler.postDelayed(() -> {
+                if(providerWeb==active)tryAutoPlayProvider();
+            }, 1400);
+            if (providerPlayChecks==2 && "\"iframe\"".equals(result))
+                updateProviderHint("Player de outro dominio. Use OK no botao Play do site; autoplay nao pode ser imposto.");
         });
     }
 
     private void providerVideoCommand(String command) {
         if (providerWeb==null) return;
+        final WebView active=providerWeb;
+        // So ha controle de tempo quando a pagina expõe um video HTML5 acessivel.
         String script="(function(){try{var v=document.querySelector('video');if(!v)return 'iframe';"+
             "if('"+command+"'==='pause'){if(v.paused){var p=v.play();if(p&&p.catch)p.catch(function(){});}else v.pause();}"+
             "if('"+command+"'==='back'&&Number.isFinite(v.currentTime))v.currentTime=Math.max(0,v.currentTime-10);"+
             "if('"+command+"'==='forward'&&Number.isFinite(v.currentTime))v.currentTime=Math.min(Number.isFinite(v.duration)?v.duration:v.currentTime+10,v.currentTime+10);"+
             "return 'ok';}catch(e){return 'error'}})()";
-        providerWeb.evaluateJavascript(script, result -> {
-            if (providerWeb==null) return;
-            if ("\"iframe\"".equals(result))
-                updateProviderHint("Este player usa iframe externo: controle por setas depende do site. Pressione MENU para navegar.");
-            else if ("\"error\"".equals(result))
-                updateProviderHint("O site recusou este comando de reproducao.");
+        active.evaluateJavascript(script, result -> {
+            if (providerWeb!=active) return;
+            if ("\"iframe\"".equals(result)) {
+                providerNavigationMode=true; // Nao bloquear o controle da TV quando iframe é inacessivel.
+                updateProviderHint("Iframe externo: setas e OK agora navegam pelos controles do player.");
+            } else if ("\"error\"".equals(result)) {
+                updateProviderHint("O player recusou este comando.");
+            }
         });
     }
 
@@ -227,7 +272,9 @@ public class MainActivity extends Activity {
             old.loadUrl("about:blank");
             old.destroy();
         }
-        providerNavigationMode=false;
+        providerNavigationMode=true;
+        providerPlayChecks=0;
+        providerFullscreenRequested=false;
         if (web!=null)web.requestFocus();
     }
 
@@ -288,7 +335,11 @@ public class MainActivity extends Activity {
     }
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction()!=KeyEvent.ACTION_DOWN) return super.dispatchKeyEvent(event);
-        if (fullscreen!=null) return super.dispatchKeyEvent(event);
+        if (fullscreen!=null) {
+            if (event.getKeyCode()==KeyEvent.KEYCODE_BACK) { exitVideoFullscreen(true); return true; }
+            // Player em fullscreen do site recebe os eventos fisicos do controle.
+            return super.dispatchKeyEvent(event);
+        }
         if (providerWeb!=null) {
             int code=event.getKeyCode();
             if (code==KeyEvent.KEYCODE_BACK) { closeProviderInsideApp(); return true; }
@@ -310,6 +361,7 @@ public class MainActivity extends Activity {
                     return true;
                 }
             }
+            // Sem video HTML5 acessivel, entregar DPAD/OK diretamente ao site.
             return super.dispatchKeyEvent(event);
         }
         if (!isMophieHome()) {

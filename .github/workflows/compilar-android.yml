@@ -50,7 +50,7 @@ jobs:
           set -euo pipefail
           APK="android_native/app/build/outputs/apk/release/app-release-unsigned.apk"
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='com.mophie.tv' versionCode='36' versionName='1.6.7'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -q "package: name='com.mophie.tv' versionCode='37' versionName='1.6.8'"
 
       - name: Assinar APK quando a chave estiver configurada
         env:
@@ -66,9 +66,9 @@ jobs:
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
               --ks "$RUNNER_TEMP/mophie-release.jks" --ks-key-alias mophietv \
               --ks-pass env:MOPHIE_SIGN_PASS --key-pass env:MOPHIE_SIGN_PASS \
-              --out dist/MophieTV_TCL_v1.6.7_ASSINADO.apk "$APK"
-            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_TCL_v1.6.7_ASSINADO.apk
-            CERT=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs dist/MophieTV_TCL_v1.6.7_ASSINADO.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)
+              --out dist/MophieTV_TCL_v1.6.8_ASSINADO.apk "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_TCL_v1.6.8_ASSINADO.apk
+            CERT=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs dist/MophieTV_TCL_v1.6.8_ASSINADO.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)
             if [ "${CERT,,}" != "44e68db74dc23534ee375f73941bc12d1d189da40a3bdd47cedf92359f385766" ]; then
               echo "::error::A chave configurada nao e a assinatura original do MophieTV (v1.1.0 a v1.6.2). Deploy bloqueado para evitar falha de atualizacao."
               exit 1
@@ -83,8 +83,8 @@ jobs:
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
               --ks "$RUNNER_TEMP/mophie-teste.jks" --ks-key-alias mophietv-teste \
               --ks-pass pass:android --key-pass pass:android \
-              --out dist/MophieTV_TCL_v1.6.7_TESTE_INSTALACAO_LIMPA.apk "$APK"
-            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_TCL_v1.6.7_TESTE_INSTALACAO_LIMPA.apk
+              --out dist/MophieTV_TCL_v1.6.8_TESTE_INSTALACAO_LIMPA.apk "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_TCL_v1.6.8_TESTE_INSTALACAO_LIMPA.apk
             rm -f "$RUNNER_TEMP/mophie-teste.jks"
             echo "MOPHIE_RELEASE_SIGNED=0" >> "$GITHUB_ENV"
             echo "::warning::APK de teste assinado com chave temporaria. A atualizacao na TCL nao sera publicada; requer certificado original."
@@ -93,7 +93,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MophieTV_v1.6.7_APK
+          name: MophieTV_v1.6.8_APK
           path: dist/*.apk
           if-no-files-found: error
 
@@ -106,7 +106,7 @@ jobs:
 
       - name: Gerar manifesto verificado para Hostinger
         run: |
-          python tools/gerar_latest.py dist/MophieTV_TCL_v1.6.7_ASSINADO.apk 1.6.7 36
+          python tools/gerar_latest.py dist/MophieTV_TCL_v1.6.8_ASSINADO.apk 1.6.8 37
           python -m py_compile tools/publicar_hostinger.py
 
       - name: Publicar APK e depois latest.json na Hostinger (FTPS)
@@ -118,5 +118,5 @@ jobs:
           MOPHIE_FTPS_DIR: ${{ vars.MOPHIE_FTPS_DIR }}
         run: |
           set -euo pipefail
-          python tools/publicar_hostinger.py upload_hostinger/latest.json upload_hostinger/MophieTV_TCL_v1.6.7_ASSINADO.apk
-          echo "✅ Hostinger recebeu o APK 1.6.7 e o latest.json. A TCL ainda precisa validar a atualizacao e confirmar a instalacao pelo Android." >> "$GITHUB_STEP_SUMMARY"
+          python tools/publicar_hostinger.py upload_hostinger/latest.json upload_hostinger/MophieTV_TCL_v1.6.8_ASSINADO.apk
+          echo "✅ Hostinger recebeu o APK 1.6.8 e o latest.json. A TCL ainda precisa validar a atualizacao e confirmar a instalacao pelo Android." >> "$GITHUB_STEP_SUMMARY"

@@ -3,7 +3,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.7';
+const VERSION='1.6.8';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
@@ -379,7 +379,7 @@ function renderSourceDetails(){const it=SRC.item;if(!it){go('sourceCatalog');ret
  (originalMode?'<div class="btn">'+ic('play')+'Tentar player incorporado</div>':'')+
  '<div class="btn">'+ic('chevronRight')+'Voltar ao catálogo</div></div>'+
  (SRC.playerError?'<p class="src-note source-error">'+esc(SRC.playerError)+'</p>':'')+
- '<p class="src-note">'+(originalMode?'Player oficial em tela cheia dentro da MophieTV, sem abrir navegador externo. Use MENU para navegar no site; autoplay e comandos dependem do player HTML5.':'Vídeos com bloqueio de incorporação ou DRM podem ficar indisponíveis.')+'</p></div></div>';
+ '<p class="src-note">'+(originalMode?'Site original aberto dentro da MophieTV em tela cheia. O app tenta autoplay e oferece controle pelo remoto para videos HTML5; se o provedor usar iframe de outro dominio, use as setas e OK no controle do site.':'Vídeos com bloqueio de incorporação ou DRM podem ficar indisponíveis.')+'</p></div></div>';
  S.zones.srcDetail={items:()=>$('sourceDetailActions').children,cols:'row',idx:0,left:'side',back:()=>go('sourceCatalog'),ok:i=>{
   if(i===0&&originalMode){openOfficialPlayer(it);return}
   if(i===(originalMode?1:0)){if(canPlay){SRC.choiceOrigin=it;beginSourceChoices(it)}else{const code=reportSource('M101','Sem página individual para '+it.name,it.url);SRC.playerError=code+' · Este título não possui uma página individual para reprodução';go('sourceDetails')}return}
