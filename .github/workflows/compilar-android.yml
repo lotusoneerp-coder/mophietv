@@ -66,8 +66,15 @@ jobs:
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
               --ks "$RUNNER_TEMP/mophie-release.jks" --ks-key-alias mophietv \
               --ks-pass env:MOPHIE_SIGN_PASS --key-pass env:MOPHIE_SIGN_PASS \
-              --out dist/MophieTV_v1.6.6_ASSINADO.apk "$APK"
-            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_v1.6.6_ASSINADO.apk
+              --out dist/MophieTV_TCL_v1.6.6_ASSINADO.apk "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_TCL_v1.6.6_ASSINADO.apk
+            CERT=$("$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs dist/MophieTV_TCL_v1.6.6_ASSINADO.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1)
+            if [ "${CERT,,}" != "44e68db74dc23534ee375f73941bc12d1d189da40a3bdd47cedf92359f385766" ]; then
+              echo "::error::A chave configurada nao e a assinatura original do MophieTV (v1.1.0 a v1.6.2). Deploy bloqueado para evitar falha de atualizacao."
+              exit 1
+            fi
+            echo "MOPHIE_RELEASE_SIGNED=1" >> "$GITHUB_ENV"
+            echo "Assinatura original confirmada. Pronto para preparar o pacote OTA." >> "$GITHUB_STEP_SUMMARY"
             rm -f "$RUNNER_TEMP/mophie-release.jks"
           else
             keytool -genkeypair -noprompt -alias mophietv-teste \
@@ -76,10 +83,12 @@ jobs:
             "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
               --ks "$RUNNER_TEMP/mophie-teste.jks" --ks-key-alias mophietv-teste \
               --ks-pass pass:android --key-pass pass:android \
-              --out dist/MophieTV_v1.6.6_TESTE_INSTALACAO_LIMPA.apk "$APK"
-            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_v1.6.6_TESTE_INSTALACAO_LIMPA.apk
+              --out dist/MophieTV_TCL_v1.6.6_TESTE_INSTALACAO_LIMPA.apk "$APK"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MophieTV_TCL_v1.6.6_TESTE_INSTALACAO_LIMPA.apk
             rm -f "$RUNNER_TEMP/mophie-teste.jks"
-            echo "::warning::APK de teste assinado com chave temporária. Requer instalação limpa. Para atualizar sem remover app anterior, configure a assinatura definitiva nos Secrets."
+            echo "MOPHIE_RELEASE_SIGNED=0" >> "$GITHUB_ENV"
+            echo "::warning::APK de teste assinado com chave temporaria. A atualizacao na TCL nao sera publicada; requer certificado original."
+            echo "❌ Sem assinatura original: APK de teste gerado, atualizacao online NAO publicada." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - uses: actions/upload-artifact@v4
@@ -87,3 +96,27 @@ jobs:
           name: MophieTV_v1.6.6_APK
           path: dist/*.apk
           if-no-files-found: error
+
+      - name: Impedir release automatico com chave temporaria
+        run: |
+          if [ "${MOPHIE_RELEASE_SIGNED:-0}" != "1" ]; then
+            echo "::error::Atualizacao OTA INDISPONIVEL: configure o JKS original em MOPHIE_KEYSTORE_B64 e MOPHIE_KEYSTORE_PASSWORD no GitHub."
+            exit 1
+          fi
+
+      - name: Gerar manifesto verificado para Hostinger
+        run: |
+          python tools/gerar_latest.py dist/MophieTV_TCL_v1.6.6_ASSINADO.apk 1.6.6 35
+          python -m py_compile tools/publicar_hostinger.py
+
+      - name: Publicar APK e depois latest.json na Hostinger (FTPS)
+        env:
+          MOPHIE_FTPS_HOST: ${{ secrets.MOPHIE_FTPS_HOST }}
+          MOPHIE_FTPS_USER: ${{ secrets.MOPHIE_FTPS_USER }}
+          MOPHIE_FTPS_PASSWORD: ${{ secrets.MOPHIE_FTPS_PASSWORD }}
+          MOPHIE_FTPS_PORT: ${{ vars.MOPHIE_FTPS_PORT }}
+          MOPHIE_FTPS_DIR: ${{ vars.MOPHIE_FTPS_DIR }}
+        run: |
+          set -euo pipefail
+          python tools/publicar_hostinger.py upload_hostinger/latest.json upload_hostinger/MophieTV_TCL_v1.6.6_ASSINADO.apk
+          echo "✅ Hostinger recebeu o APK 1.6.6 e o latest.json. A TCL ainda precisa validar a atualizacao e confirmar a instalacao pelo Android." >> "$GITHUB_STEP_SUMMARY"
