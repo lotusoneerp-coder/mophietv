@@ -1,10 +1,10 @@
-/* Mophie TV updater 1.6.5 — boot gate + instalacao nativa de APK.
+/* Mophie TV updater 1.6.6 — boot gate + instalacao nativa de APK.
  * Instalacao via PackageInstaller: validacao no Android e confirmacao pelo usuario.
  */
 (function(){'use strict';
 var MANIFEST='https://mophietv.lotusoneerp.com/latest.json';
 var SITE='https://mophietv.lotusoneerp.com/';
-var CODE=34, VERSION='1.6.5', CHANNEL='tcl-completa', PACKAGE='com.mophie.tv';
+var CODE=35, VERSION='1.6.6', CHANNEL='tcl-completa', PACKAGE='com.mophie.tv';
 var opened=false, choice=0, latest=null, running=false, state='idle';
 var gateStarted=false, gatePassed=false, bootCallback=null, inflight=null;
 var el=document.getElementById('mophie-update-modal');
