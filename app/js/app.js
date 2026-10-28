@@ -3,7 +3,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.6';
+const VERSION='1.6.7';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
@@ -168,7 +168,7 @@ function renderProfileEdit(){
  setTitle(p.name?'Editar perfil':'Criar perfil','Digite o nome e escolha uma foto');
  $('view').innerHTML='<div class="profile-name-editor" id="profileNameScroll">'+
  '<div class="profile-edit-heading"><h2>Como vamos chamar você?</h2><p>Digite o nome usando o controle TCL. Depois escolha sua foto.</p></div>'+
- '<div class="profile-edit-preview"><div class="profile-preview-photo" id="editPreviewPhoto" role="button" tabindex="0" aria-label="Alterar foto do perfil. Pressione OK">'+avatarMarkup(FL.avatarDraft,FL.editName)+'<span class="profile-photo-overlay">'+ic('image')+' ALTERAR FOTO</span></div><div class="profile-preview-copy"><div class="profile-preview-label">NOME DO PERFIL</div><h3 id="editTitle">'+esc(FL.editName||'Digite o nome')+'</h3><span>Aperte ↑ para focar a foto e OK para trocar</span></div></div>'+
+ '<div class="profile-edit-preview"><div class="profile-preview-photo" id="editPreviewPhoto" role="button" tabindex="0" aria-label="Alterar foto do perfil. Pressione OK">'+avatarMarkup(FL.avatarDraft,FL.editName)+'<span class="profile-photo-overlay">'+ic('image')+' ALTERAR FOTO</span></div><div class="profile-preview-copy"><div class="profile-preview-label">NOME DO PERFIL</div><h3 id="editTitle">'+esc(FL.editName||'Digite o nome')+'</h3><span>Pressione OK na foto grande ou escolha ALTERAR FOTO</span></div></div>'+
  '<div class="profile-keyboard" id="nameKeys">'+NAME_KEYS.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'<div class="kb-key">Espaço</div><div class="kb-key">Apagar</div></div>'+
  '<div class="profile-editor-actions" id="editActions"><div class="btn">'+ic('image')+'Escolher foto de perfil</div><div class="btn">'+ic('check')+'Salvar perfil</div><div class="btn profile-delete">'+ic('x')+'Excluir perfil</div></div>'+
  '</div>';
@@ -201,7 +201,7 @@ function renderAvatarPicker(){
  '<div class="avatar-gallery-scroll" id="avatarGalleryScroll"><div class="avatar-gallery" id="avatarChoice">'+
  AVATAR_FILES.map((src,i)=>'<div class="avatar-option'+(src===selected?' selected':'')+'">'+avatarMarkup(src,'Foto '+(i+1))+'</div>').join('')+
  '</div></div><div class="avatar-picker-actions" id="avatarPickerActions"><div class="btn">'+ic('chevronLeft')+'Voltar sem alterar</div></div></div>';
- const cols=7;
+ const cols=3;
  S.zones.avatars={items:()=>$('avatarChoice').children,cols,idx:FL.avatarIdx,scroll:()=>$('avatarGalleryScroll'),down:'avatarPickerActions',back:()=>go('profileEdit','editActions'),left:'side',change:i=>{FL.avatarIdx=i;$('avatarCounter').textContent='Foto '+(i+1)+' de '+AVATAR_FILES.length},ok:i=>{
   FL.avatarDraft=AVATAR_FILES[i]||AVATAR_FILES[0];FL.avatarIdx=i;go('profileEdit','editActions');toast('Foto selecionada. Salve o perfil para confirmar.','check')
  }};
@@ -367,7 +367,7 @@ function openOfficialPlayer(item){
  const url=window.MophieSourcePlayer&&MophieSourcePlayer.providerPage(item,'RedeCanais');
  if(!url){toast('Página oficial não disponível para este título','alert');return}
  persist();
- // A Activity nativa valida o domínio e abre o navegador real, com player/anúncios do próprio site.
+ // A Activity nativa valida o dominio e abre uma WebView separada DENTRO do aplicativo; respeita os controles do provedor.
  window.location.href='mophie-original://open?url='+encodeURIComponent(url);
 }
 function renderSourceDetails(){const it=SRC.item;if(!it){go('sourceCatalog');return null}
@@ -375,11 +375,11 @@ function renderSourceDetails(){const it=SRC.item;if(!it){go('sourceCatalog');ret
  const originalMode=FL.provider==='RedeCanais'&&canPlay;
  const hist=store.sourceProg[sourceHistoryKey(it,FL.provider)];
  setTitle(it.type==='series'?'Série':it.type==='anime'?'Anime':'Filme',FL.provider+' · MophieFlix');
- $('view').innerHTML='<div class="detail"><div class="detail-bg">'+(it.poster?img(it.poster,it.name):'')+'</div><div class="detail-body"><h2>'+esc(it.name)+'</h2><div class="meta-line">'+esc([it.year,it.genre].filter(Boolean).join(' · '))+'</div><p class="syn">'+(hist?(hist.kind==='video'&&hist.p?'Continuar de '+fmtTime(hist.p)+' · ':'Visto recentemente · '):'')+'O aplicativo tenta reproduzir este título internamente quando o provedor disponibiliza um player incorporável. Alguns títulos podem não ter um vídeo disponível.</p><div id="sourceDetailActions" class="actions"><div class="btn">'+ic(canPlay?'play':'info')+(originalMode?'Abrir player oficial no navegador':canPlay?'Escolher episódio / player':'Player indisponível')+'</div>'+
+ $('view').innerHTML='<div class="detail"><div class="detail-bg">'+(it.poster?img(it.poster,it.name):'')+'</div><div class="detail-body"><h2>'+esc(it.name)+'</h2><div class="meta-line">'+esc([it.year,it.genre].filter(Boolean).join(' · '))+'</div><p class="syn">'+(hist?(hist.kind==='video'&&hist.p?'Continuar de '+fmtTime(hist.p)+' · ':'Visto recentemente · '):'')+'O aplicativo tenta reproduzir este título internamente quando o provedor disponibiliza um player incorporável. Alguns títulos podem não ter um vídeo disponível.</p><div id="sourceDetailActions" class="actions"><div class="btn">'+ic(canPlay?'play':'info')+(originalMode?'Assistir dentro da MophieTV':canPlay?'Escolher episódio / player':'Player indisponível')+'</div>'+
  (originalMode?'<div class="btn">'+ic('play')+'Tentar player incorporado</div>':'')+
  '<div class="btn">'+ic('chevronRight')+'Voltar ao catálogo</div></div>'+
  (SRC.playerError?'<p class="src-note source-error">'+esc(SRC.playerError)+'</p>':'')+
- '<p class="src-note">'+(originalMode?'A página oficial abre no navegador da TV com o player e os anúncios do provedor. VOLTAR retorna à Mophie TV. A incorporação pode ser bloqueada.':'Vídeos com bloqueio de incorporação ou DRM podem ficar indisponíveis.')+'</p></div></div>';
+ '<p class="src-note">'+(originalMode?'Player oficial em tela cheia dentro da MophieTV, sem abrir navegador externo. Use MENU para navegar no site; autoplay e comandos dependem do player HTML5.':'Vídeos com bloqueio de incorporação ou DRM podem ficar indisponíveis.')+'</p></div></div>';
  S.zones.srcDetail={items:()=>$('sourceDetailActions').children,cols:'row',idx:0,left:'side',back:()=>go('sourceCatalog'),ok:i=>{
   if(i===0&&originalMode){openOfficialPlayer(it);return}
   if(i===(originalMode?1:0)){if(canPlay){SRC.choiceOrigin=it;beginSourceChoices(it)}else{const code=reportSource('M101','Sem página individual para '+it.name,it.url);SRC.playerError=code+' · Este título não possui uma página individual para reprodução';go('sourceDetails')}return}

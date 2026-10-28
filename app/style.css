@@ -570,3 +570,26 @@ body.virtual-mouse-mode #playerDiagBadge{opacity:.25}
  .profile-preview-copy h3{font-size:1.45rem}
  .profile-preview-copy span{font-size:.95rem}
 }
+
+/* 1.6.7: edicao TV com foto aproximadamente tres vezes maior que na 1.6.6. */
+.profile-name-editor{justify-content:flex-start;gap:1rem;padding:1rem 1.2rem 2rem}
+.profile-name-editor .profile-edit-heading{margin-top:0}
+.profile-name-editor .profile-editor-actions{margin-bottom:0}
+.profile-edit-preview{width:min(78rem,100%);flex-direction:column;align-items:center;gap:1.1rem;padding:1.2rem;flex-shrink:0}
+.profile-edit-preview .profile-preview-photo{width:clamp(18rem,65vh,32rem);height:clamp(18rem,65vh,32rem);flex-shrink:0;border-width:4px}
+.profile-edit-preview .profile-photo-overlay{min-height:4rem;font-size:1.4rem;line-height:1.2;font-weight:800}
+.profile-edit-preview .profile-photo-overlay .ic{width:1.65rem;height:1.65rem}
+.profile-edit-preview .profile-preview-copy{text-align:center}
+.profile-edit-preview .profile-preview-copy span{font-size:1.1rem}
+.profile-photo-picker .avatar-gallery{grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.profile-photo-picker .avatar-gallery-scroll{width:min(72rem,100%)}
+.profile-photo-picker .avatar-picker-actions{width:min(72rem,100%)}
+@media(max-height:600px){
+ .profile-name-editor{padding:.5rem 1rem 1.5rem}
+ .profile-edit-preview .profile-preview-photo{width:clamp(16rem,65vh,27rem);height:clamp(16rem,65vh,27rem)}
+ .profile-edit-preview .profile-photo-overlay{min-height:3rem;font-size:1.15rem}
+}
+@media(max-width:600px){
+ .profile-edit-preview .profile-preview-photo{width:min(85vw,65vh);height:min(85vw,65vh)}
+ .profile-photo-picker .avatar-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
