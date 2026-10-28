@@ -76,6 +76,7 @@
    if(new URL(r.url).origin!==new URL(page).origin)throw err('M103','Redirecionamento externo não suportado');
    if(isInstruction(r.url))throw err('M116','A fonte redirecionou para Como assistir, não para um episódio válido.');
    html=await r.text();if(html.length>2000000)throw err('M104','Resposta HTML maior que o limite de análise');
+   if(/p[aá]gina bloqueada|os espertinhos se ferr|utilize nosso player com nosso an[uú]ncio/i.test(html))throw err('M120','O provedor bloqueou esta forma de acesso. Use o player oficial na página original pelo navegador da TV.');
   }catch(e){if(e.code)throw e;if(e.name==='AbortError')throw err('M110','Tempo limite de leitura da página');throw err('M102','Site não permitiu consultar a página do título (rede ou CORS)')}
   finally{clearTimeout(ti)}
   if(/como[-_]?assistir/i.test(new URL(page).pathname))throw err('M116','Link de instruções não é um episódio nem um player.');
