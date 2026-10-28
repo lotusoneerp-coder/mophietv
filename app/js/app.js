@@ -168,13 +168,14 @@ function renderProfileEdit(){
  setTitle(p.name?'Editar perfil':'Criar perfil','Digite o nome e escolha uma foto');
  $('view').innerHTML='<div class="profile-name-editor" id="profileNameScroll">'+
  '<div class="profile-edit-heading"><h2>Como vamos chamar você?</h2><p>Digite o nome usando o controle TCL. Depois escolha sua foto.</p></div>'+
- '<div class="profile-edit-preview"><div class="profile-preview-photo" id="editPreviewPhoto" role="button" aria-label="Escolher foto do perfil">'+avatarMarkup(FL.avatarDraft,FL.editName)+'<span class="profile-photo-overlay">'+ic('image')+' Escolher foto</span></div><div class="profile-preview-copy"><div class="profile-preview-label">NOME DO PERFIL</div><h3 id="editTitle">'+esc(FL.editName||'Digite o nome')+'</h3><span>Selecione a foto acima ou o botão ESCOLHER FOTO</span></div></div>'+
+ '<div class="profile-edit-preview"><div class="profile-preview-photo" id="editPreviewPhoto" role="button" tabindex="0" aria-label="Alterar foto do perfil. Pressione OK">'+avatarMarkup(FL.avatarDraft,FL.editName)+'<span class="profile-photo-overlay">'+ic('image')+' ALTERAR FOTO</span></div><div class="profile-preview-copy"><div class="profile-preview-label">NOME DO PERFIL</div><h3 id="editTitle">'+esc(FL.editName||'Digite o nome')+'</h3><span>Aperte ↑ para focar a foto e OK para trocar</span></div></div>'+
  '<div class="profile-keyboard" id="nameKeys">'+NAME_KEYS.map(k=>'<div class="kb-key">'+k+'</div>').join('')+'<div class="kb-key">Espaço</div><div class="kb-key">Apagar</div></div>'+
  '<div class="profile-editor-actions" id="editActions"><div class="btn">'+ic('image')+'Escolher foto de perfil</div><div class="btn">'+ic('check')+'Salvar perfil</div><div class="btn profile-delete">'+ic('x')+'Excluir perfil</div></div>'+
  '</div>';
  const redraw=()=>{$('editTitle').textContent=FL.editName||'Digite o nome'};
   $('editPreviewPhoto').addEventListener('click',()=>{FL.avatarIdx=avatarIndex(FL.avatarDraft);go('avatarPicker')});
- S.zones.editKeys={items:()=>$('nameKeys').children,cols:6,idx:FL.editIdx,scroll:()=>$('profileNameScroll'),down:'editActions',back:cancelProfileEdit,left:'side',change:i=>{FL.editIdx=i},ok:i=>{
+ S.zones.editPhoto={items:()=>[$('editPreviewPhoto')],cols:'row',down:'editKeys',left:'side',back:cancelProfileEdit,ok:()=>{FL.avatarIdx=avatarIndex(FL.avatarDraft);go('avatarPicker')}};
+ S.zones.editKeys={items:()=>$('nameKeys').children,cols:6,idx:FL.editIdx,scroll:()=>$('profileNameScroll'),up:'editPhoto',down:'editActions',back:cancelProfileEdit,left:'side',change:i=>{FL.editIdx=i},ok:i=>{
   if(i<NAME_KEYS.length){if(FL.editName.length<18)FL.editName+=NAME_KEYS[i]}
   else if(i===36){if(FL.editName.length<18)FL.editName+=' '}
   else FL.editName=FL.editName.slice(0,-1);
@@ -362,19 +363,26 @@ function diagnosticKey(key){
  }
 }
 
+function openOfficialPlayer(item){
+ const url=window.MophieSourcePlayer&&MophieSourcePlayer.providerPage(item,'RedeCanais');
+ if(!url){toast('Página oficial não disponível para este título','alert');return}
+ persist();
+ // A Activity nativa valida o domínio e abre o navegador real, com player/anúncios do próprio site.
+ window.location.href='mophie-original://open?url='+encodeURIComponent(url);
+}
 function renderSourceDetails(){const it=SRC.item;if(!it){go('sourceCatalog');return null}
  const canPlay=!!(window.MophieSourcePlayer&&window.MophieSourcePlayer.providerPage(it,FL.provider));
  const originalMode=FL.provider==='RedeCanais'&&canPlay;
  const hist=store.sourceProg[sourceHistoryKey(it,FL.provider)];
  setTitle(it.type==='series'?'Série':it.type==='anime'?'Anime':'Filme',FL.provider+' · MophieFlix');
- $('view').innerHTML='<div class="detail"><div class="detail-bg">'+(it.poster?img(it.poster,it.name):'')+'</div><div class="detail-body"><h2>'+esc(it.name)+'</h2><div class="meta-line">'+esc([it.year,it.genre].filter(Boolean).join(' · '))+'</div><p class="syn">'+(hist?(hist.kind==='video'&&hist.p?'Continuar de '+fmtTime(hist.p)+' · ':'Visto recentemente · '):'')+'O aplicativo tenta reproduzir este título internamente quando o provedor disponibiliza um player incorporável. Alguns títulos podem não ter um vídeo disponível.</p><div id="sourceDetailActions" class="actions"><div class="btn">'+ic(canPlay?'play':'info')+(canPlay?'Escolher episódio / player':'Player indisponível')+'</div>'+
- (originalMode?'<div class="btn">'+ic('info')+'Página original (teste)</div>':'')+
+ $('view').innerHTML='<div class="detail"><div class="detail-bg">'+(it.poster?img(it.poster,it.name):'')+'</div><div class="detail-body"><h2>'+esc(it.name)+'</h2><div class="meta-line">'+esc([it.year,it.genre].filter(Boolean).join(' · '))+'</div><p class="syn">'+(hist?(hist.kind==='video'&&hist.p?'Continuar de '+fmtTime(hist.p)+' · ':'Visto recentemente · '):'')+'O aplicativo tenta reproduzir este título internamente quando o provedor disponibiliza um player incorporável. Alguns títulos podem não ter um vídeo disponível.</p><div id="sourceDetailActions" class="actions"><div class="btn">'+ic(canPlay?'play':'info')+(originalMode?'Abrir player oficial no navegador':canPlay?'Escolher episódio / player':'Player indisponível')+'</div>'+
+ (originalMode?'<div class="btn">'+ic('play')+'Tentar player incorporado</div>':'')+
  '<div class="btn">'+ic('chevronRight')+'Voltar ao catálogo</div></div>'+
  (SRC.playerError?'<p class="src-note source-error">'+esc(SRC.playerError)+'</p>':'')+
- '<p class="src-note">'+(originalMode?'A opção Página original abre o site fora do iframe da Mophie TV. Use VOLTAR na TV para tentar retornar; se necessário, reabra o aplicativo. Não contorna bloqueios do provedor.':'Vídeos com bloqueio de incorporação ou DRM podem ficar indisponíveis.')+'</p></div></div>';
+ '<p class="src-note">'+(originalMode?'A página oficial abre no navegador da TV com o player e os anúncios do provedor. VOLTAR retorna à Mophie TV. A incorporação pode ser bloqueada.':'Vídeos com bloqueio de incorporação ou DRM podem ficar indisponíveis.')+'</p></div></div>';
  S.zones.srcDetail={items:()=>$('sourceDetailActions').children,cols:'row',idx:0,left:'side',back:()=>go('sourceCatalog'),ok:i=>{
-  if(i===0){if(canPlay){SRC.choiceOrigin=it;beginSourceChoices(it)}else{const code=reportSource('M101','Sem página individual para '+it.name,it.url);SRC.playerError=code+' · Este título não possui uma página individual para reprodução';go('sourceDetails')}return}
-  if(originalMode&&i===1){const url=MophieSourcePlayer.providerPage(it,FL.provider);if(url){persist();window.location.assign(url)}return}
+  if(i===0&&originalMode){openOfficialPlayer(it);return}
+  if(i===(originalMode?1:0)){if(canPlay){SRC.choiceOrigin=it;beginSourceChoices(it)}else{const code=reportSource('M101','Sem página individual para '+it.name,it.url);SRC.playerError=code+' · Este título não possui uma página individual para reprodução';go('sourceDetails')}return}
   SRC.playerError='';go('sourceCatalog');
  }};
  return 'srcDetail'}
@@ -770,8 +778,8 @@ async function playSourceVod(item,selection){
         try {const p=localVideo.play();if(p&&p.catch)p.catch(()=>{});}catch(_){}
         $('osdMeta').textContent='Reprodução automática solicitada ao player acessível · '+provider;
       }else{
-        const code=reportSource('M105','Iframe abriu; player externo não confirma reprodução automática',result.url);
-        $('osdMeta').textContent=code+' · Player externo: áudio, Play e tela cheia dependem do site/WebView';
+        // O onload confirma só o carregamento do iframe; não é erro M105 de vídeo.
+        $('osdMeta').textContent='Player externo carregado · se aparecer Página bloqueada, abra o player oficial pelo MENU';
       }
     };
     f.onerror=()=>{if(S.playing===P){const code=reportSource('M111','Falha reportada pelo iframe; pode haver bloqueio de incorporação',result.url);$('osdMeta').textContent=code+' · Player indisponível. Aperte OK para diagnóstico.'}};
@@ -910,6 +918,7 @@ function currentCtx(){const z=zone();
 function openDrawer(ctx,restoreZone){const items=[],c=ctx===undefined?currentCtx():ctx,sec=S.section;
  if(c)items.push({ctx:true,icon:c.icon,label:c.label,run:()=>{c.run();if(restoreZone&&!S.playing&&S.section===sec&&S.zones[restoreZone])activate(restoreZone)}});
  if(S.playing&&S.playing.kind==='sourceVod'){
+  if(FL.provider==='RedeCanais')items.push({icon:'play',label:'Abrir player oficial no navegador',run:()=>{const it=S.playing&&S.playing.meta;if(it){leavePlayer();openOfficialPlayer(it)}}});
   items.push({icon:'info',label:'Ver código do diagnóstico',run:showDiagnostic});
   items.push({icon:'refresh',label:'Escolher outro episódio / player',run:()=>{leavePlayer();go(SRC.choiceResult?'sourceChoices':'sourceDetails')}});
   items.push({icon:'alert',label:'Tela preta / robô Android',run:()=>{reportSource('M106','Tela preta ou ícone do Android visto na TCL',S.playing&&S.playing.meta&&S.playing.meta.url);showDiagnostic()}});
