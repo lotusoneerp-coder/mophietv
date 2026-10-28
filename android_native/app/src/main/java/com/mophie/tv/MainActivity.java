@@ -1,6 +1,8 @@
 package com.mophie.tv;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.widget.Toast;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.Gravity;
@@ -76,6 +78,23 @@ public class MainActivity extends Activity {
     }
 
     private boolean handleInternalUpdateUrl(android.net.Uri uri, boolean mainFrame) {
+        // A página original usa o navegador instalado, não um iframe bloqueado.
+        // Permite somente URLs HTTPS do provedor explicitamente suportado.
+        if ("mophie-original".equals(uri.getScheme())) {
+            if (!mainFrame || !"open".equals(uri.getHost()) || !isMophieHome()) return true;
+            try {
+                String requested=uri.getQueryParameter("url");
+                android.net.Uri target=android.net.Uri.parse(requested);
+                String host=target.getHost();
+                if ("https".equals(target.getScheme()) && ("redecanais.by".equalsIgnoreCase(host) ||
+                    "www.redecanais.by".equalsIgnoreCase(host))) {
+                    startActivity(new Intent(Intent.ACTION_VIEW, target).addCategory(Intent.CATEGORY_BROWSABLE));
+                } else Toast.makeText(this, "Página não autorizada", Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "Não foi possível abrir o navegador da TV", Toast.LENGTH_LONG).show();
+            }
+            return true;
+        }
         if (!"mophie-install".equals(uri.getScheme())) return false;
         if (!mainFrame || !"start".equals(uri.getHost()) || web == null ||
             !"file:///android_asset/index.html".equals(web.getUrl())) return true;
