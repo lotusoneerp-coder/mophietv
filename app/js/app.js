@@ -3,7 +3,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.11';
+const VERSION='1.6.12';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
@@ -827,9 +827,9 @@ function setOsd(o){$('osdBadge').innerHTML=ic(o.icon)+esc(o.badge);$('osdNumber'
  $('osdProgress').hidden=!showProgress;
  $('osdProgress').setAttribute('aria-hidden',showProgress?'false':'true');
  $('osdHelp').innerHTML=o.help.map(([k,l])=>'<span class="hint"><span class="key">'+esc(k)+'</span>'+esc(l)+'</span>').join('')}
-function osd(keep){clearTimeout(S.playerTimer);$('osd').classList.remove('hidden');updateProgress();if(!keep)S.playerTimer=setTimeout(()=>{if(!(S.playing&&S.playing.kind==='vod'&&$('video').paused))$('osd').classList.add('hidden')},5500)}
+function osd(keep){if(S.playing&&S.playing.kind==='live'){$('osdProgress').hidden=true;$('volumeOsd').classList.add('hidden')}clearTimeout(S.playerTimer);$('osd').classList.remove('hidden');updateProgress();if(!keep)S.playerTimer=setTimeout(()=>{if(!(S.playing&&S.playing.kind==='vod'&&$('video').paused))$('osd').classList.add('hidden')},5500)}
 function volume(delta){S.volume=Math.min(100,Math.max(0,S.volume+delta));store.volume=S.volume;persist();$('video').volume=S.volume/100;$('volumeValue').textContent=S.volume;$('volumeFill').style.width=S.volume+'%';
- $('volIcon').innerHTML=ic(S.volume?'volume':'volumeOff');$('volumeOsd').classList.remove('hidden');clearTimeout($('volumeOsd')._hide);$('volumeOsd')._hide=setTimeout(()=>$('volumeOsd').classList.add('hidden'),1900)}
+ $('volIcon').innerHTML=ic(S.volume?'volume':'volumeOff');if(!(S.playing&&S.playing.kind==='live'))$('volumeOsd').classList.remove('hidden');clearTimeout($('volumeOsd')._hide);$('volumeOsd')._hide=setTimeout(()=>$('volumeOsd').classList.add('hidden'),1900)}
 function attachSource(u,o){const v=$('video');
  if(/\.m3u8(?:[?#]|$)/i.test(u)&&window.Hls&&Hls.isSupported()){let net=0,media=0;
   const h=S.hls=new Hls(o.live?{enableWorker:true,lowLatencyMode:false,maxBufferLength:12}:{enableWorker:true,maxBufferLength:30,startPosition:o.start>0?o.start:-1});
@@ -905,7 +905,7 @@ async function playSourceVod(item,selection){
 function playLive(list,i,from){const c=list[i];if(!c)return;S.ctx={kind:'live',list,i,from};playChannel(c)}
 function playChannel(c){saveProgress();stopPlayer();S.playing={kind:'live',c};const bank=S.ctx.from==='live'?L.bank:c.bank;
  store['lastChannel_'+bank]=normal(c.name);if(S.ctx.from==='live')store.lastBank=L.bank;store.lastLive={bank,name:c.name};persist();showPlayer();
- setOsd({icon:'radio',badge:'AO VIVO',number:'Canal '+pad3(c.number),title:c.name,meta:c.label+' · '+(BANKS[c.bank]||c.bank),help:[['↑ ↓','Trocar canal'],['← →','Volume'],['OK','Lista de canais'],['VOLTAR segurar 3 s','Opções']]});
+ setOsd({icon:'radio',badge:'AO VIVO',number:'Canal '+pad3(c.number),title:c.name,meta:c.label+' · '+(BANKS[c.bank]||c.bank),help:[['↑ ↓','Trocar canal'],['OK','Lista de canais'],['VOLTAR segurar 3 s','Opções']]});
  $('volumeOsd').classList.add('hidden');osd();const v=$('video'),f=$('embed');
  // Identifica o programa exibido somente quando existe uma correspondência real em XMLTV.
  probeProgram(c,false).then(()=>{if(S.playing&&S.playing.kind==='live'&&S.playing.c===c)refreshProgramTiles()});
