@@ -621,3 +621,8 @@ body.virtual-mouse-mode #playerDiagBadge{opacity:.25}
 .iptv-import input.focused,.iptv-import input:focus{border-color:var(--accent);box-shadow:0 0 0 .18rem var(--accent-soft)}
 .iptv-import #iptvImportActions{margin-top:.35rem}
 .iptv-import #iptvImportStatus{overflow-wrap:anywhere}
+
+/* Canais ao vivo: a faixa inferior de controles pertencente a frames externos fica fora da área visível. */
+#player.live-play iframe{height:calc(100% + 76px);bottom:-76px;top:0}
+#player.live-play #osdProgress,#player.live-play #volumeOsd,#player.live-play #pauseMark{display:none!important}
+#player.live-play video::-webkit-media-controls{display:none!important}
