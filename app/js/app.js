@@ -3,7 +3,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.12';
+const VERSION='1.6.13';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
@@ -903,7 +903,7 @@ async function playSourceVod(item,selection){
  }catch(err){if(S.playing!==P)return;const code=reportSource(err.code||'M104',String(err&&err.message||err),item.url);SRC.playerError=code+' · Reprodução indisponível: '+String(err&&err.message||err);closePlayer();toast(SRC.playerError,'alert')}
 }
 function playLive(list,i,from){const c=list[i];if(!c)return;S.ctx={kind:'live',list,i,from};playChannel(c)}
-function playChannel(c){saveProgress();stopPlayer();S.playing={kind:'live',c};const bank=S.ctx.from==='live'?L.bank:c.bank;
+function playChannel(c){saveProgress();stopPlayer();S.playing={kind:'live',c};$('video').controls=false;$('video').autoplay=true;$('pauseMark').classList.add('hidden');const bank=S.ctx.from==='live'?L.bank:c.bank;
  store['lastChannel_'+bank]=normal(c.name);if(S.ctx.from==='live')store.lastBank=L.bank;store.lastLive={bank,name:c.name};persist();showPlayer();
  setOsd({icon:'radio',badge:'AO VIVO',number:'Canal '+pad3(c.number),title:c.name,meta:c.label+' · '+(BANKS[c.bank]||c.bank),help:[['↑ ↓','Trocar canal'],['OK','Lista de canais'],['VOLTAR segurar 3 s','Opções']]});
  $('volumeOsd').classList.add('hidden');osd();const v=$('video'),f=$('embed');
