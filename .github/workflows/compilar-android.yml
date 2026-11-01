@@ -25,6 +25,7 @@ jobs:
         run: |
           set -e
           for f in app/js/*.js; do node --check "$f"; done
+          node --test tests/test_iptv_vod.js
 
       - name: Configurar Android SDK
         run: |
