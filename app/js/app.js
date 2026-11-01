@@ -3,14 +3,14 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
-const VERSION='1.6.9';
+const VERSION='1.6.10';
 const BANKS={BCN1:'Rei dos Canais',BCN2:'TV a Cabo',BCN3:'IPTV-org',BCN4:'CXTV Brasil',BCNALL:'Todos os bancos'};
 const BANK_IDS=['BCN1','BCN2','BCN3','BCN4','BCNALL'];
 const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memória.
 const KEY='mophietv_tcl_1';
 const HOLD_BACK_MS=3000;
 const PROFILE_FIELDS=['vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'];
-const PROVIDERS=[{name:'Pluto TV',desc:'Filmes e séries · catálogo oficial',available:true},{name:'RedeCanais',desc:'Lista de títulos · reprodução conforme disponibilidade',available:true,metadataOnly:true}];
+const PROVIDERS=[{name:'Pluto TV',desc:'Filmes e séries · catálogo oficial',available:true},{name:'RedeCanais',desc:'Lista de títulos · reprodução conforme disponibilidade',available:true,metadataOnly:true},{name:'SaimoTV',desc:'Catálogo SaimoTV · página original dentro do aplicativo',available:true,officialUrl:'https://saimo-tv.pages.dev/'}];
 const AVATAR_FILES=Array.from({length:107},(_,i)=>'avatars/'+(i+1)+'.png');
 const store=(()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){return {}}})();
 ['favorites','vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'].forEach(k=>{if(!store[k]||typeof store[k]!=='object'||Array.isArray(store[k]))store[k]={}});
