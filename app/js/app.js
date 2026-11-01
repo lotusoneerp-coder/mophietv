@@ -10,7 +10,7 @@ const LIVE_PAGE_SIZE=80; // Exibe 80 por vez; mantém todos os canais na memóri
 const KEY='mophietv_tcl_1';
 const HOLD_BACK_MS=3000;
 const PROFILE_FIELDS=['vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'];
-const PROVIDERS=[{name:'Pluto TV',desc:'Filmes e séries · catálogo oficial',available:true},{name:'RedeCanais',desc:'Lista de títulos · reprodução conforme disponibilidade',available:true,metadataOnly:true},{name:'Plex',desc:'Filmes HD gratuitos · catálogo oficial com anúncios',available:true,officialUrl:'https://watch.plex.tv/pt-BR'}];
+const PROVIDERS=[{name:'Pluto TV',desc:'Filmes e séries · catálogo oficial',available:true},{name:'RedeCanais',desc:'Lista de títulos · reprodução conforme disponibilidade',available:true,metadataOnly:true}];
 const AVATAR_FILES=Array.from({length:107},(_,i)=>'avatars/'+(i+1)+'.png');
 const store=(()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){return {}}})();
 ['favorites','vodFav','vodProg','vodWatched','vodSeriesLast','sourceProg'].forEach(k=>{if(!store[k]||typeof store[k]!=='object'||Array.isArray(store[k]))store[k]={}});
@@ -136,10 +136,10 @@ function setHints(list){$('hints').innerHTML=list.map(([k,l])=>'<span class="hin
 function setTitle(t,sub){$('pageTitle').textContent=t;$('pageSub').textContent=sub||''}
 
 /* ---------- navegação principal ---------- */
-const SECTIONS={live:{title:'TV ao Vivo',icon:'tv'},mophieflix:{title:'MophieFlix',icon:'clapper'},movies:{title:'Filmes',icon:'film'},series:{title:'Séries',icon:'clapper'},favorites:{title:'Favoritos',icon:'heart'},continue:{title:'Continuar assistindo',icon:'history'},settings:{title:'Configurações',icon:'settings',bottom:true}};
-const SIDE=['live','mophieflix','favorites','continue','settings'];
-const RENDER={live:renderLive,mophieflix:renderProfiles,profileEdit:renderProfileEdit,avatarPicker:renderAvatarPicker,providers:renderProviders,flixhome:renderFlixHome,providerUnavailable:renderProviderUnavailable,sourceCatalog:renderSourceCatalog,sourceSearch:renderSourceSearch,sourceDetails:renderSourceDetails,sourceChoices:renderSourceChoices,movies:()=>renderCatalog('movie'),series:()=>renderCatalog('series'),favorites:renderFavorites,continue:renderContinue,settings:renderSettings,about:renderAbout,details:renderDetails};
-const HINTS={mophieflix:[['OK','Selecionar perfil'],['VOLTAR segurar 3 s','Opções']],providers:[['OK','Selecionar catálogo'],['VOLTAR','Perfis']],flixhome:[['OK','Abrir título'],['VOLTAR','Provedores'],['← →','Navegar']],profileEdit:[['OK','Digitar / selecionar'],['↓','Foto e salvar'],['VOLTAR','Perfis']],avatarPicker:[['← → ↑ ↓','Escolher foto'],['OK','Confirmar foto'],['VOLTAR','Editar nome']],providerUnavailable:[['VOLTAR','Provedores']],sourceCatalog:[['OK','Informações'],['← →','Navegar'],['VOLTAR','Provedores']],sourceSearch:[['OK','Digitar / abrir'],['VOLTAR','Catálogo']],sourceDetails:[['OK','Selecionar opção'],['VOLTAR','Catálogo']],sourceChoices:[['↑ ↓','Escolher opção'],['OK','Abrir'],['VOLTAR','Detalhes']],live:[['OK','Assistir'],['VOLTAR','Bancos'],['VOLTAR segurar 3 s','Opções e favoritos']],movies:[['OK','Detalhes'],['VOLTAR','Categorias'],['VOLTAR segurar 3 s','Opções']],series:[['OK','Detalhes'],['VOLTAR','Categorias'],['VOLTAR segurar 3 s','Opções']],favorites:[['OK','Abrir'],['VOLTAR segurar 3 s','Opções']],continue:[['OK','Continuar'],['VOLTAR segurar 3 s','Opções']],settings:[['OK','Selecionar'],['← →','Ajustar volume'],['VOLTAR segurar 3 s','Opções']],about:[['VOLTAR','Configurações']],details:[['OK','Selecionar'],['VOLTAR','Voltar'],['VOLTAR segurar 3 s','Opções']]};
+const SECTIONS={live:{title:'TV ao Vivo',icon:'tv'},iptvVod:{title:'IPTV Filmes',icon:'film'},mophieflix:{title:'MophieFlix',icon:'clapper'},movies:{title:'Filmes',icon:'film'},series:{title:'Séries',icon:'clapper'},favorites:{title:'Favoritos',icon:'heart'},continue:{title:'Continuar assistindo',icon:'history'},settings:{title:'Configurações',icon:'settings',bottom:true}};
+const SIDE=['live','iptvVod','mophieflix','favorites','continue','settings'];
+const RENDER={live:renderLive,iptvVod:renderIptvVod,iptvImport:renderIptvImport,iptvSearch:renderIptvSearch,mophieflix:renderProfiles,profileEdit:renderProfileEdit,avatarPicker:renderAvatarPicker,providers:renderProviders,flixhome:renderFlixHome,providerUnavailable:renderProviderUnavailable,sourceCatalog:renderSourceCatalog,sourceSearch:renderSourceSearch,sourceDetails:renderSourceDetails,sourceChoices:renderSourceChoices,movies:()=>renderCatalog('movie'),series:()=>renderCatalog('series'),favorites:renderFavorites,continue:renderContinue,settings:renderSettings,about:renderAbout,details:renderDetails};
+const HINTS={iptvVod:[['OK','Abrir filme'],['VOLTAR','Menu lateral']],iptvImport:[['OK','Editar/importar'],['VOLTAR','Lista IPTV']],iptvSearch:[['OK','Buscar ou assistir'],['VOLTAR','Lista IPTV']],mophieflix:[['OK','Selecionar perfil'],['VOLTAR segurar 3 s','Opções']],providers:[['OK','Selecionar catálogo'],['VOLTAR','Perfis']],flixhome:[['OK','Abrir título'],['VOLTAR','Provedores'],['← →','Navegar']],profileEdit:[['OK','Digitar / selecionar'],['↓','Foto e salvar'],['VOLTAR','Perfis']],avatarPicker:[['← → ↑ ↓','Escolher foto'],['OK','Confirmar foto'],['VOLTAR','Editar nome']],providerUnavailable:[['VOLTAR','Provedores']],sourceCatalog:[['OK','Informações'],['← →','Navegar'],['VOLTAR','Provedores']],sourceSearch:[['OK','Digitar / abrir'],['VOLTAR','Catálogo']],sourceDetails:[['OK','Selecionar opção'],['VOLTAR','Catálogo']],sourceChoices:[['↑ ↓','Escolher opção'],['OK','Abrir'],['VOLTAR','Detalhes']],live:[['OK','Assistir'],['VOLTAR','Bancos'],['VOLTAR segurar 3 s','Opções e favoritos']],movies:[['OK','Detalhes'],['VOLTAR','Categorias'],['VOLTAR segurar 3 s','Opções']],series:[['OK','Detalhes'],['VOLTAR','Categorias'],['VOLTAR segurar 3 s','Opções']],favorites:[['OK','Abrir'],['VOLTAR segurar 3 s','Opções']],continue:[['OK','Continuar'],['VOLTAR segurar 3 s','Opções']],settings:[['OK','Selecionar'],['← →','Ajustar volume'],['VOLTAR segurar 3 s','Opções']],about:[['VOLTAR','Configurações']],details:[['OK','Selecionar'],['VOLTAR','Voltar'],['VOLTAR segurar 3 s','Opções']]};
 function buildSide(){const box=$('sideItems');
  box.innerHTML=SIDE.map(id=>'<div class="side-item'+(SECTIONS[id].bottom?' bottom':'')+'">'+ic(SECTIONS[id].icon)+'<span>'+esc(SECTIONS[id].title)+'</span></div>').join('');
  S.zones.side={items:()=>box.children,cols:1,idx:0,enter(){this.idx=Math.max(0,SIDE.indexOf(S.sideCurrent))},right:()=>S.contentZone&&len(S.zones[S.contentZone])?S.contentZone:null,ok:i=>go(SIDE[i]),hints:[['OK','Abrir'],['→','Conteúdo'],['VOLTAR segurar 3 s','Opções']]}}
@@ -700,6 +700,85 @@ function renderContinue(){const recs=continueItems(),ll=store.lastLive,cards=[];
  return 'grid'}
 function playLastLive(){const ll=store.lastLive;if(!ll)return;const list=allChannels(BANKS[ll.bank]?ll.bank:'BCNALL');const i=list.findIndex(c=>normal(c.name)===normal(ll.name));if(i<0){toast('Canal não encontrado no banco atual','alert');return}playLive(list,i,'continue')}
 
+
+/* ---------- IPTV Filmes: biblioteca local de catálogos fornecidos pelo usuário ---------- */
+const IPTV={page:0,search:'',searchIdx:0,resultIdx:0,busy:false,notice:'',selected:0};
+function iptvFiltered(){const raw=window.MophieIptvVod?MophieIptvVod.items():[];
+ const q=normal(IPTV.search);return q?raw.filter(x=>normal(x.name).includes(q)):raw}
+function iptvOpen(item){if(!item||!window.MophieIptvVod)return;
+ const url=MophieIptvVod.videoUrl(item);if(!isURL(url)){toast('Este título não possui link direto de vídeo','alert');return}
+ FL.provider='IPTV Filmes';SRC.item=item;SRC.choiceResult=null;
+ playSourceVod(item,{kind:'video',url});}
+function renderIptvVod(){setTitle('IPTV Filmes','Catálogo na TV · reprodução somente quando abrir o filme');
+ const meta=window.MophieIptvVod?MophieIptvVod.info():{count:0};
+ const list=iptvFiltered(),size=80,pages=Math.max(1,Math.ceil(list.length/size));
+ IPTV.page=Math.min(IPTV.page,pages-1);const start=IPTV.page*size,shown=list.slice(start,start+size);
+ $('view').innerHTML='<div class="source-list-layout"><div class="source-list-heading"><h2>Biblioteca IPTV</h2><p>Filmes em lista, sem baixar os vídeos. Reprodução direta no player da Mophie TV.</p></div>'+
+ '<div class="source-list-toolbar" id="iptvActions">'+
+ '<div class="btn">'+ic('search')+'Buscar</div>'+
+ '<div class="btn">'+ic('plus')+'Importar catálogo ou MP4</div>'+
+ '<div class="btn">'+ic('chevronLeft')+'Anterior</div>'+
+ '<div class="btn">'+ic('chevronRight')+'Próxima</div>'+
+ '<div class="btn">'+ic('x')+'Limpar biblioteca</div></div>'+
+ '<div class="source-list-summary">'+list.length.toLocaleString('pt-BR')+' títulos · página '+(IPTV.page+1)+' de '+pages+
+ (meta.updated?' · atualizado '+esc(fmtDate(meta.updated)):' · importe seu link IPTV')+'</div>'+
+ '<div class="source-title-scroll" id="iptvScroll"><div class="source-title-list" id="iptvRows">'+
+ shown.map((item,i)=>'<div class="source-title-row"><span class="source-title-index">'+String(start+i+1).padStart(3,'0')+
+ '</span><span class="source-title-name">'+esc(item.name)+'</span><span class="source-title-chevron">▶</span></div>').join('')+
+ '</div></div>'+(IPTV.notice?'<p class="src-note">'+esc(IPTV.notice)+'</p>':'')+'</div>';
+ S.zones.iptvActions={items:()=>$('iptvActions').children,cols:'row',idx:IPTV.selected,down:shown.length?'iptvRows':null,left:'side',ok:i=>{
+  IPTV.selected=i;if(i===0){IPTV.search='';IPTV.searchIdx=0;IPTV.resultIdx=0;go('iptvSearch');return}
+  if(i===1){go('iptvImport');return}
+  if(i===2||i===3){IPTV.page=Math.max(0,Math.min(pages-1,IPTV.page+(i===2?-1:1)));go('iptvVod','iptvRows');return}
+  if(i===4){if(Date.now()-(ST.iptvEraseConfirmAt||0)>4000){ST.iptvEraseConfirmAt=Date.now();toast('Pressione OK novamente para apagar a biblioteca IPTV','alert');return}
+    ST.iptvEraseConfirmAt=0;MophieIptvVod.remove().then(()=>{IPTV.page=0;IPTV.notice='Biblioteca limpa';go('iptvVod')}).catch(e=>toast(e.message,'alert'))}}};
+ S.zones.iptvRows={items:()=>$('iptvRows').children,cols:2,idx:0,scroll:()=>$('iptvScroll'),up:'iptvActions',left:'side',ok:i=>iptvOpen(shown[i])};
+ return shown.length?'iptvRows':'iptvActions'}
+function renderIptvSearch(){setTitle('Buscar IPTV','Resultados aparecem enquanto você digita');
+ const keys=sourceSearchLetters,items=iptvFiltered().slice(0,120);
+ $('view').innerHTML='<div class="source-search-layout"><div class="source-search-side"><h2>Pesquisar filmes</h2>'+
+ '<div class="source-search-query" id="iptvQuery">'+esc(IPTV.search||'Digite usando o controle')+'</div>'+
+ '<div class="source-search-keys" id="iptvKeys">'+keys.map(x=>'<div class="kb-key">'+x+'</div>').join('')+'</div>'+
+ '<p class="src-note">OK digita · ↓ mostra resultados</p></div>'+
+ '<div class="source-search-results" id="iptvResultScroll"><h2 id="iptvResultCount">'+items.length+' resultados</h2>'+
+ '<div class="source-search-grid source-results-list" id="iptvResults">'+items.map(x=>'<div class="source-title-row"><span class="source-title-name">'+esc(x.name)+'</span><span class="source-title-chevron">▶</span></div>').join('')+
+ '</div></div></div>';
+ function refresh(){if(S.section!=='iptvSearch')return;const matches=iptvFiltered().slice(0,120);IPTV.results=matches;
+   $('iptvQuery').textContent=IPTV.search||'Digite usando o controle';
+   $('iptvResultCount').textContent=matches.length+' resultados';
+   $('iptvResults').innerHTML=matches.map(x=>'<div class="source-title-row"><span class="source-title-name">'+esc(x.name)+'</span><span class="source-title-chevron">▶</span></div>').join('');
+   if(S.zones.iptvResults){S.zones.iptvResults.idx=0;S.zones.iptvKeys.down=matches.length?'iptvResults':null}
+   if(S.zone==='iptvResults')activate(matches.length?'iptvResults':'iptvKeys',0)}
+ IPTV.refresh=refresh;IPTV.results=items;
+ S.zones.iptvKeys={items:()=>$('iptvKeys').children,cols:6,idx:IPTV.searchIdx,
+  down:items.length?'iptvResults':null,left:'side',back:()=>go('iptvVod'),change:i=>{IPTV.searchIdx=i},ok:i=>{
+   if(i<36)IPTV.search=(IPTV.search+keys[i]).slice(0,60);
+   else if(i===36)IPTV.search=(IPTV.search+' ').slice(0,60);
+   else IPTV.search=IPTV.search.slice(0,-1);
+   refresh()}};
+ S.zones.iptvResults={items:()=>$('iptvResults').children,cols:2,idx:0,scroll:()=>$('iptvResultScroll'),
+  up:'iptvKeys',left:'iptvKeys',back:()=>go('iptvVod'),ok:i=>iptvOpen((IPTV.results||[])[i])};
+ return 'iptvKeys'}
+function renderIptvImport(){setTitle('Importar IPTV','O catálogo e as credenciais ficam neste dispositivo, não no GitHub');
+ $('view').innerHTML='<div class="source-list-layout iptv-import"><div class="source-list-heading"><h2>Importar catálogo IPTV</h2>'+
+ '<p>Cole o endereço de um filme Xtream (/movie/usuário/senha/id.mp4), de uma playlist M3U ou de um MP4.</p></div>'+
+ '<label for="iptvSourceInput">LINK DO CATÁLOGO OU DO VÍDEO</label>'+
+ '<input id="iptvSourceInput" type="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Cole o link IPTV aqui">'+
+ '<p class="src-note">No Android TV, selecione o campo com OK e use o teclado do celular/controle para colar o endereço. HTTPS é recomendado.</p>'+
+ '<div class="source-list-toolbar" id="iptvImportActions"><div class="btn">'+ic('plus')+'Importar</div><div class="btn">'+ic('chevronLeft')+'Voltar</div></div>'+
+ '<p class="src-note" id="iptvImportStatus">'+esc(IPTV.notice||'O primeiro carregamento pode exigir internet; os títulos ficam salvos para busca offline.')+'</p></div>';
+ S.zones.iptvInput={items:()=>[$('iptvSourceInput')],cols:1,down:'iptvImportActions',left:'side',back:()=>go('iptvVod'),ok:()=>{$('iptvSourceInput').focus();$('iptvSourceInput').click()}};
+ S.zones.iptvImportActions={items:()=>$('iptvImportActions').children,cols:'row',idx:0,up:'iptvInput',left:'side',back:()=>go('iptvVod'),ok:i=>{
+  if(i===1){go('iptvVod');return}if(IPTV.busy)return;
+  const input=$('iptvSourceInput').value.trim();if(!input){toast('Cole primeiro um link IPTV','alert');activate('iptvInput');return}
+  const status=$('iptvImportStatus');IPTV.busy=true;status.textContent='Importando catálogo…';
+  MophieIptvVod.importSource(input,m=>{if(status)status.textContent=m}).then(result=>{
+   IPTV.busy=false;IPTV.notice=result.warning||result.count.toLocaleString('pt-BR')+' filmes importados';
+   IPTV.page=0;IPTV.search='';go('iptvVod','iptvRows');
+   toast(result.warning?'Somente 1 filme importado':result.count+' filmes importados',result.warning?'alert':'check');
+  }).catch(e=>{IPTV.busy=false;status.textContent='Falha: '+e.message;toast('Não foi possível importar o catálogo','alert')})}};
+ return 'iptvInput'}
+
 /* ---------- Configurações e Sobre ---------- */
 function renderSettings(){setTitle('Configurações','Salvas automaticamente neste televisor');const n=continueItems().length;
  const rows=[['volume','Volume padrão','Use ← e → para ajustar','<div class="mini"><i style="width:'+S.volume+'%"></i></div>'+S.volume+'%'],
@@ -768,10 +847,10 @@ function rememberSource(item,provider,kind,url,position,duration){
  persist();
 }
 async function playSourceVod(item,selection){
- if(!window.MophieSourcePlayer){SRC.playerError='M104 · Player não instalado.';go('sourceDetails');return}
+ if(!window.MophieSourcePlayer){SRC.playerError='M104 · Player não instalado.';go(FL.provider==='IPTV Filmes'?'iptvVod':'sourceDetails');return}
  saveProgress();stopPlayer();SRC.playerError='';
  const P=S.playing={kind:'sourceVod',meta:item},provider=FL.provider;
- S.ctx={kind:'sourceVod',from:'sourceDetails'};showPlayer();
+ S.ctx={kind:'sourceVod',from:provider==='IPTV Filmes'?'iptvVod':'sourceDetails'};showPlayer();
  setOsd({icon:'film',badge:provider.toUpperCase(),number:'',title:item.name,meta:'Procurando player compatível…',progress:false,help:[['OK','Diagnóstico e opções'],['VOLTAR','Voltar ao catálogo']]});reportSource('M114','Abrindo player selecionado',selection&&selection.url||item.url);osd(true);
  try{
   const result=selection||await MophieSourcePlayer.resolve(item,provider);
@@ -873,7 +952,7 @@ function leavePlayer(){clearTimeout(vodBackTimer);vodBackTimer=null;if(!S.playin
 // Retorna à tela de origem mantendo o foco no item reproduzido.
 function closePlayer(){const x=S.ctx;leavePlayer();if(!x){go(S.section);return}
  if(x.kind==='live'){const c=x.list[x.i];if(x.from==='live'){const j=c?L.list.findIndex(y=>y.id===c.id):-1;if(j>=0)L.idx=j;go('live','grid')}else{if(x.from==='favorites')F.idx[0]=x.i;go(x.from)}return}
- if(x.kind==='sourceVod'){go(SRC.choiceResult?'sourceChoices':'sourceDetails');return}
+ if(x.kind==='sourceVod'){go(x.from==='iptvVod'?'iptvVod':(SRC.choiceResult?'sourceChoices':'sourceDetails'));return}
  go(x.from)}
 
 /* ---------- legendas do player interno ---------- */
@@ -1046,12 +1125,18 @@ function playerKey(key){const P=S.playing;
 const NAV=['ChannelUp','ChannelDown','Info','Guide','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','NumpadEnter','Escape','Backspace','Menu','m','M','ContextMenu'];
 const DIRS={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'};
 function onKey(ev){const key=ev.key;
- if(!S.playing&&!S.drawer.open&&!(window.MophieUpdater&&MophieUpdater.isOpen())&&
-    (S.section==='sourceSearch'||S.section==='profileEdit'||((S.section==='movies'||S.section==='series')&&V[S.section==='movies'?'movie':'series'].cat===0))){
+ if(!S.playing&&S.section==='iptvImport'&&document.activeElement===$('iptvSourceInput')){
+   if(key==='Escape'){document.activeElement.blur();activate('iptvImportActions',0);return}
+   if(key==='Enter'||key==='NumpadEnter'){document.activeElement.blur();activate('iptvImportActions',0);return}
+   return;
+  }
+  if(!S.playing&&!S.drawer.open&&!(window.MophieUpdater&&MophieUpdater.isOpen())&&
+    (S.section==='sourceSearch'||S.section==='iptvSearch'||S.section==='profileEdit'||((S.section==='movies'||S.section==='series')&&V[S.section==='movies'?'movie':'series'].cat===0))){
   const ch=key===' '?' ':key.length===1&&/[a-z0-9À-ÿ]/i.test(key)?key.toUpperCase():null;
   if(ch!==null||key==='Backspace'){
    if(ev.preventDefault)ev.preventDefault();if(ev.stopPropagation)ev.stopPropagation();
    if(S.section==='sourceSearch'){SRC.search=key==='Backspace'?SRC.search.slice(0,-1):(SRC.search+ch).slice(0,55);SRC.searchResultIdx=0;refreshSourceSearch();return}
+    if(S.section==='iptvSearch'){IPTV.search=key==='Backspace'?IPTV.search.slice(0,-1):(IPTV.search+ch).slice(0,60);IPTV.resultIdx=0;if(IPTV.refresh)IPTV.refresh();return}
    if(S.section==='profileEdit'){FL.editName=key==='Backspace'?FL.editName.slice(0,-1):(FL.editName+ch).slice(0,18);const t=$('editTitle');if(t)t.textContent=FL.editName||'Digite o nome';return}
    const st=V[S.section==='movies'?'movie':'series'];st.q=key==='Backspace'?st.q.slice(0,-1):(st.q+ch).slice(0,40);st.res=0;
    renderSearch(S.section==='movies'?'movie':'series');activate('kb',st.kb);return;
@@ -1099,7 +1184,7 @@ window.addEventListener('resize',()=>{if(S.zone)applyFocus()});
 function updateClock(){$('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});const on=navigator.onLine;$('net').className=on?'':'off';$('net').innerHTML=on?ic('wifi'):ic('wifiOff')+'Sem conexão'}
 window.addEventListener('online',updateClock);window.addEventListener('offline',updateClock);
 
-function boot(){setInterval(()=>{refreshProgramTiles();if(S.section==='live')fetchGuideForTiles(false)},60000);setInterval(()=>startGuideSync(false).catch(()=>{}),60*60000);if(Array.isArray(store.rei)&&store.rei.length)embeddedCatalog.BCN1=store.rei;if(Array.isArray(store.iptv)&&store.iptv.length)embeddedCatalog.BCN3=store.iptv;
+function boot(){if(window.MophieIptvVod)MophieIptvVod.load().then(()=>{if(S.section==='iptvVod')go('iptvVod')}).catch(()=>{});setInterval(()=>{refreshProgramTiles();if(S.section==='live')fetchGuideForTiles(false)},60000);setInterval(()=>startGuideSync(false).catch(()=>{}),60*60000);if(Array.isArray(store.rei)&&store.rei.length)embeddedCatalog.BCN1=store.rei;if(Array.isArray(store.iptv)&&store.iptv.length)embeddedCatalog.BCN3=store.iptv;
  if(Array.isArray(store.cxtv)&&store.cxtv.length)embeddedCatalog.BCN4=store.cxtv;
  applyChannelOverrides();
  buildSide();updateClock();setInterval(updateClock,20000);L.counts=bankCounts();loadBank(L.bank);
