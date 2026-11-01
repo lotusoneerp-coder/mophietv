@@ -611,3 +611,13 @@ body.virtual-mouse-mode #playerDiagBadge{opacity:.25}
   height:min(42.5vw,32.5vh);
  }
 }
+
+/* IPTV VOD: formulário adaptado à TV com foco visível e links mantidos apenas localmente. */
+.iptv-import{gap:.85rem;padding:1.5rem 2rem;max-width:65rem}
+.iptv-import label{font-size:.9rem;letter-spacing:.08em;font-weight:700;color:var(--accent-hi)}
+.iptv-import input{width:100%;border-radius:.8rem;min-height:4rem;padding:.8rem 1rem;
+  background:var(--surface-2);border:2px solid var(--line);color:var(--text);font-size:1.12rem;
+  outline:none;box-sizing:border-box}
+.iptv-import input.focused,.iptv-import input:focus{border-color:var(--accent);box-shadow:0 0 0 .18rem var(--accent-soft)}
+.iptv-import #iptvImportActions{margin-top:.35rem}
+.iptv-import #iptvImportStatus{overflow-wrap:anywhere}
