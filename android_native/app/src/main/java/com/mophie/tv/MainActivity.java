@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
                 android.net.Uri target=android.net.Uri.parse(requested);
                 String host=target.getHost();
                 if ("https".equals(target.getScheme()) && ("redecanais.by".equalsIgnoreCase(host) ||
-                    "www.redecanais.by".equalsIgnoreCase(host) || "watch.plex.tv".equalsIgnoreCase(host))) {
+                    "www.redecanais.by".equalsIgnoreCase(host) || "watch.plex.tv".equalsIgnoreCase(host) || "saimo-tv.pages.dev".equalsIgnoreCase(host))) {
                     openProviderInsideApp(target);
                 } else Toast.makeText(this, "Página não autorizada", Toast.LENGTH_LONG).show();
             } catch (Exception e) {
@@ -127,7 +127,7 @@ public class MainActivity extends Activity {
     private boolean isProviderUrl(android.net.Uri u) {
         if (u==null || !"https".equalsIgnoreCase(u.getScheme())) return false;
         String host=u.getHost();
-        return "redecanais.by".equalsIgnoreCase(host) || "www.redecanais.by".equalsIgnoreCase(host) || "watch.plex.tv".equalsIgnoreCase(host);
+        return "redecanais.by".equalsIgnoreCase(host) || "www.redecanais.by".equalsIgnoreCase(host) || "watch.plex.tv".equalsIgnoreCase(host) || "saimo-tv.pages.dev".equalsIgnoreCase(host);
     }
 
     private void openProviderInsideApp(android.net.Uri target) {
