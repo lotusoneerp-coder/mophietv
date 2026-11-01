@@ -1,0 +1,1 @@
+Verificação de compilação Android MophieTV 1.6.10 com SaimoTV.
