@@ -6,8 +6,8 @@ android {
         applicationId 'com.mophie.tv'
         minSdk 23
         targetSdk 28
-        versionCode 40
-        versionName '1.6.11'
+        versionCode 41
+        versionName '1.6.12'
     }
     lint {
         disable 'ExpiredTargetSdkVersion'
