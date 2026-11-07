@@ -626,3 +626,12 @@ body.virtual-mouse-mode #playerDiagBadge{opacity:.25}
 #player.live-play iframe{height:calc(100% + 76px);bottom:-76px;top:0}
 #player.live-play #osdProgress,#player.live-play #volumeOsd,#player.live-play #pauseMark{display:none!important}
 #player.live-play video::-webkit-media-controls{display:none!important}
+
+/* Philips SAPHI: painel Disney+ leve, navegável pelo controle remoto. */
+.disney-page{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:2rem;background:radial-gradient(ellipse at 50% 25%,rgba(32,57,100,.42),transparent 62%)}
+.disney-card{width:min(58rem,90%);padding:3rem 3.5rem;border:1px solid rgba(255,255,255,.13);border-radius:1.5rem;background:linear-gradient(145deg,#101a30,#080b14);box-shadow:0 1.5rem 5rem rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:flex-start;gap:1.25rem}
+.disney-mark{font-size:3.5rem;font-weight:800;letter-spacing:-.12em;color:#f5f7ff}.disney-mark span{color:#66a9ff;font-size:.8em}
+.disney-card h2{margin:.5rem 0 0;font-size:2.2rem}.disney-card p{margin:0;color:#c7d1e5;font-size:1.25rem;line-height:1.55;max-width:45rem}
+.disney-launch{margin:.75rem 0;padding:1.15rem 2.2rem;border-radius:.75rem;background:#1769d2;color:#fff;font-weight:800;letter-spacing:.04em;outline:0;cursor:pointer}
+.disney-launch.focused{background:#fff;color:#124c9c;box-shadow:0 0 0 .25rem #7bb5ff,0 .6rem 2rem rgba(0,0,0,.3)}
+.disney-card small{max-width:48rem;color:#9caac2;font-size:.9rem;line-height:1.5}
