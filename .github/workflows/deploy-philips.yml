@@ -1,0 +1,92 @@
+name: Deploy MophieTV Philips SAPHI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/deploy-philips.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Philips web edition
+        run: |
+          set -euo pipefail
+          test -s app/index.html
+          test -s app/js/app.js
+          grep -q "PHILIPS_MODE" app/js/app.js
+          grep -q "renderDisney" app/js/app.js
+      - name: Publish Philips web edition in isolated /philips folder
+        env:
+          MOPHIE_FTPS_HOST: ${{ secrets.MOPHIE_FTPS_HOST }}
+          MOPHIE_FTPS_USER: ${{ secrets.MOPHIE_FTPS_USER }}
+          MOPHIE_FTPS_PASSWORD: ${{ secrets.MOPHIE_FTPS_PASSWORD }}
+          MOPHIE_FTPS_PORT: ${{ vars.MOPHIE_FTPS_PORT }}
+          MOPHIE_FTPS_DIR: ${{ vars.MOPHIE_FTPS_DIR }}
+        run: |
+          python - <<'PY'
+          import ftplib, os, pathlib, ssl, sys
+          root = pathlib.Path("app")
+          host = os.environ.get("MOPHIE_FTPS_HOST", "").strip()
+          user = os.environ.get("MOPHIE_FTPS_USER", "").strip()
+          password = os.environ.get("MOPHIE_FTPS_PASSWORD", "")
+          remote_root = os.environ.get("MOPHIE_FTPS_DIR", "").strip()
+          port = int(os.environ.get("MOPHIE_FTPS_PORT") or "21")
+          if not all((host, user, password, remote_root)):
+              sys.exit("Credenciais FTPS ausentes; Philips web edition não foi publicada.")
+          files = sorted(p for p in root.rglob("*") if p.is_file())
+          if not files:
+              sys.exit("Pasta app vazia.")
+          with ftplib.FTP_TLS(context=ssl.create_default_context(), timeout=45) as ftp:
+              ftp.connect(host, port)
+              ftp.login(user, password)
+              ftp.prot_p()
+              ftp.cwd(remote_root)
+              marker = ".mophie-philips-managed"
+              created = False
+              try:
+                  ftp.cwd("philips")
+              except ftplib.error_perm:
+                  ftp.mkd("philips")
+                  ftp.cwd("philips")
+                  created = True
+              names = set(ftp.nlst())
+              if not created and marker not in names:
+                  visible = {n.rsplit("/", 1)[-1] for n in names if n not in (".", "..")}
+                  if visible:
+                      sys.exit("A pasta /philips já contém arquivos não identificados; deploy interrompido para não sobrescrever conteúdo.")
+              if marker not in names:
+                  from io import BytesIO
+                  ftp.storbinary("STOR " + marker, BytesIO(b"MophieTV Philips SAPHI web edition managed by GitHub Actions.\n"))
+              def mkdirs(rel):
+                  for part in rel.parts:
+                      try:
+                          ftp.cwd(part)
+                      except ftplib.error_perm:
+                          ftp.mkd(part)
+                          ftp.cwd(part)
+              for local in files:
+                  rel = local.relative_to(root)
+                  dirs = rel.parts[:-1]
+                  ftp.cwd(remote_root)
+                  ftp.cwd("philips")
+                  mkdirs(pathlib.PurePosixPath(*dirs))
+                  with local.open("rb") as stream:
+                      ftp.storbinary("STOR " + rel.name, stream, blocksize=262144)
+              ftp.cwd(remote_root)
+              ftp.cwd("philips")
+              check = set(ftp.nlst())
+              if "index.html" not in check or marker not in check:
+                  sys.exit("Verificação final falhou: index.html não encontrado no destino.")
+              ftp.quit()
+          print("Publicado em https://mophietv.lotusoneerp.com/philips/")
+          print("Arquivos enviados:", len(files))
+          PY
