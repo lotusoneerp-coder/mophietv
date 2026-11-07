@@ -1,0 +1,61 @@
+name: Publicar MophieTV Philips (GitHub Pages)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/deploy-philips-pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Preparar edição Philips
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/index.html
+          test -s app/channels-data.js
+          test -s app/js/app.js
+          grep -q "PHILIPS_MODE" app/js/app.js
+          mkdir -p _site/philips
+          cp -a app/. _site/philips/
+          touch _site/.nojekyll
+          cat > _site/philips/philips-info.txt <<'EOF'
+          MophieTV Philips SAPHI
+          Abra index.html pelo endereço público /mophietv/philips/
+          Edição web otimizada para navegação por controle remoto.
+          EOF
+
+      - name: Enviar arquivos para Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
