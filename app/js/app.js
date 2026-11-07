@@ -2,7 +2,7 @@
    Contrato com a camada nativa (MainActivity, inalterada): window.mophieRemoteKey(key), window.mophieBack(), window.mophieMenu(). */
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
-const PHILIPS_MODE=/\/philips(?:\/|$)/i.test(location.pathname);
+const PHILIPS_MODE=/\/philips(?:\/|$)/i.test(location.pathname)||/[?&]edition=philips(?:&|$)/i.test(location.search);
 if(PHILIPS_MODE)document.title='Mophie TV · Philips';
 const DATA=window.MOPHIE_DATA||{},CAT=window.MophieCatalog,SOURCES=window.MophieSources,EPG=window.MophieEPG,ic=window.icon;
 const VERSION='1.6.14';
